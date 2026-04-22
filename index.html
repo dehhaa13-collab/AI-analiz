@@ -44,6 +44,109 @@
     fbq('track', 'PageView');
   </script>
   <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1006602698050276&ev=PageView&noscript=1"/></noscript>
+
+  <!-- Google Analytics 4 — замінити G-XXXXXXXXXX на свій ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+
+  <!-- ═══ Unified Analytics Layer ═══ -->
+  <script>
+    window.BA = window.BA || {};
+
+    // Unified tracker — fires to GA4 + FB Pixel + dataLayer
+    BA.track = function(eventName, params) {
+      params = params || {};
+      params.timestamp = new Date().toISOString();
+      params.page_url = location.href;
+
+      // GA4
+      if (typeof gtag === 'function') gtag('event', eventName, params);
+
+      // FB Pixel custom
+      if (typeof fbq === 'function') {
+        if (['Lead','Purchase','CompleteRegistration','ViewContent','InitiateCheckout'].includes(eventName)) {
+          fbq('track', eventName, params);
+        } else {
+          fbq('trackCustom', eventName, params);
+        }
+      }
+
+      // Console in dev
+      if (location.hostname === 'localhost') console.log('[BA]', eventName, params);
+    };
+
+    // ─── Scroll depth tracking ───
+    (function() {
+      var milestones = [25, 50, 75, 90, 100];
+      var fired = {};
+      function getScrollPercent() {
+        var h = document.documentElement;
+        var b = document.body;
+        var st = h.scrollTop || b.scrollTop;
+        var sh = (h.scrollHeight || b.scrollHeight) - h.clientHeight;
+        return sh > 0 ? Math.round((st / sh) * 100) : 0;
+      }
+      var ticking = false;
+      window.addEventListener('scroll', function() {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(function() {
+            var pct = getScrollPercent();
+            for (var i = 0; i < milestones.length; i++) {
+              if (pct >= milestones[i] && !fired[milestones[i]]) {
+                fired[milestones[i]] = true;
+                BA.track('scroll_depth', { depth: milestones[i] });
+              }
+            }
+            ticking = false;
+          });
+        }
+      }, { passive: true });
+    })();
+
+    // ─── Time on page tracking ───
+    (function() {
+      var entry = Date.now();
+      var intervals = [15, 30, 60, 120, 300]; // seconds
+      var idx = 0;
+      var timer = setInterval(function() {
+        if (idx >= intervals.length) { clearInterval(timer); return; }
+        var elapsed = (Date.now() - entry) / 1000;
+        if (elapsed >= intervals[idx]) {
+          BA.track('time_on_page', { seconds: intervals[idx] });
+          idx++;
+        }
+      }, 5000);
+
+      // Track total on exit
+      window.addEventListener('beforeunload', function() {
+        var total = Math.round((Date.now() - entry) / 1000);
+        if (navigator.sendBeacon) {
+          // Can't send to GA/FB via beacon easily, but log to dataLayer
+          BA.track('session_end', { total_seconds: total });
+        }
+      });
+    })();
+
+    // ─── Visibility change tracking ───
+    (function() {
+      var hiddenAt = null;
+      document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+          hiddenAt = Date.now();
+        } else if (hiddenAt) {
+          var away = Math.round((Date.now() - hiddenAt) / 1000);
+          if (away > 3) BA.track('tab_return', { away_seconds: away });
+          hiddenAt = null;
+        }
+      });
+    })();
+  </script>
 </head>
 
 <body>

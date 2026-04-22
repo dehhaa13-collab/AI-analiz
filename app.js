@@ -103,6 +103,8 @@
         input.checked = true;
         state.answers[name] = input.value;
         checkQuizValid();
+        // Track each quiz answer
+        if (window.BA) BA.track('quiz_answer', { question: name, answer: input.value });
       });
     });
   }
@@ -124,6 +126,7 @@
         $('#panel-screenshot').classList.toggle('hidden', tab !== 'screenshot');
         $('#panel-username').classList.toggle('hidden', tab !== 'username');
         checkUploadValid();
+        if (window.BA) BA.track('input_tab_switch', { tab: tab });
       });
     });
   }
@@ -175,6 +178,7 @@
       els.changeImage.classList.remove('hidden');
       els.uploadZone.classList.add('has-image');
       checkUploadValid();
+      if (window.BA) BA.track('image_uploaded', { size_kb: Math.round(file.size / 1024) });
     } catch (err) {
       showError('Не вдалось обробити зображення');
     }
@@ -334,7 +338,7 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
     }
 
     showScreen('screen-loading');
-    if (typeof fbq === 'function') fbq('trackCustom', 'AnalysisStarted');
+    if (window.BA) BA.track('analysis_started', { input_mode: state.inputMode, niche: state.answers.q0 || '' });
 
     try {
       // Fetch real Instagram data if username mode
@@ -345,10 +349,22 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
       state.aiResult = await apiAnalyze();
       renderResults(state.aiResult);
       showScreen('screen-results');
-      if (typeof fbq === 'function') fbq('trackCustom', 'AnalysisCompleted', { score: state.aiResult.score });
+      if (window.BA) BA.track('analysis_completed', {
+        score: state.aiResult.score,
+        niche: state.answers.q0,
+        input_mode: state.inputMode,
+        has_profile_data: !!state.profileData
+      });
+      // FB standard event for retargeting
+      if (typeof fbq === 'function') fbq('track', 'ViewContent', {
+        content_name: 'AI Analysis Result',
+        content_category: state.answers.q0,
+        value: state.aiResult.score
+      });
     } catch (err) {
       showScreen('screen-upload');
       showError(err.message || 'Щось пішло не так');
+      if (window.BA) BA.track('analysis_error', { error: err.message || 'unknown', input_mode: state.inputMode });
     }
   }
 
@@ -493,6 +509,7 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
 
   function copyText(text, btn) {
     const orig = btn.textContent;
+    const label = btn.closest('.idea-card') ? 'content_plan' : 'hashtags';
     navigator.clipboard.writeText(text).then(() => done()).catch(() => {
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -505,6 +522,7 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
     function done() {
       btn.textContent = '✅ Скопійовано!';
       btn.classList.add('copied');
+      if (window.BA) BA.track('copy_click', { type: label });
       setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
     }
   }
@@ -533,9 +551,9 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
   function openModal() {
     els.callbackModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
-    // Pre-fill Instagram
     const ig = state.username || state.answers.username || '';
     if (ig && els.leadIg) els.leadIg.value = '@' + ig.replace(/^@/, '');
+    if (window.BA) BA.track('cta_click', { type: 'callback_modal', score: state.aiResult?.score });
   }
 
   function closeModal() {
@@ -580,7 +598,7 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
     // Always show success
     els.callbackForm.classList.add('hidden');
     els.callbackSuccess.classList.remove('hidden');
-    if (typeof fbq === 'function') fbq('track', 'Lead');
+    if (window.BA) BA.track('Lead', { niche: state.answers.q0, score: state.aiResult?.score, time_slot: payload.time });
     setTimeout(closeModal, 3000);
   }
 
@@ -595,15 +613,28 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
     els.btnNext.addEventListener('click', () => {
       state.answers.q4 = $('#q4-text').value.trim();
       showScreen('screen-upload');
-      if (typeof fbq === 'function') fbq('trackCustom', 'QuizCompleted');
+      if (window.BA) BA.track('quiz_completed', {
+        niche: state.answers.q0,
+        goal: state.answers.q1,
+        followers: state.answers.q2,
+        frequency: state.answers.q3,
+        has_concern: !!state.answers.q4
+      });
     });
 
     els.btnBackQuiz.addEventListener('click', () => showScreen('screen-quiz'));
     els.btnAnalyze.addEventListener('click', runAnalysis);
     els.btnRetry.addEventListener('click', () => { hideError(); runAnalysis(); });
 
-    // CTA
+    // CTA clicks tracking
     els.ctaCallback.addEventListener('click', openModal);
+    const ctaCall = $('#cta-call');
+    const ctaMsg = $('#cta-message');
+    const ctaZoom = $('#cta-zoom');
+    if (ctaCall) ctaCall.addEventListener('click', () => { if (window.BA) BA.track('cta_click', { type: 'phone_call' }); });
+    if (ctaMsg) ctaMsg.addEventListener('click', () => { if (window.BA) BA.track('cta_click', { type: 'telegram' }); });
+    if (ctaZoom) ctaZoom.addEventListener('click', () => { if (window.BA) BA.track('cta_click', { type: 'zoom_calendar' }); });
+
     els.modalBackdrop.addEventListener('click', closeModal);
     els.modalClose.addEventListener('click', closeModal);
     els.callbackForm.addEventListener('submit', submitLead);
