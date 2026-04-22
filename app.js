@@ -300,8 +300,15 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
   }
 
   // ── API call ──
-  async function apiAnalyze() {
+  async function apiAnalyze(retryCount) {
+    retryCount = retryCount || 0;
     const messages = buildPrompt();
+
+    // If retrying due to bad format, add a hint
+    if (retryCount > 0) {
+      messages.push({ role: 'user', content: 'УВАГА: поверни ТІЛЬКИ чистий JSON без ```json тегів, без пояснень. Починай з { і закінчуй }' });
+    }
+
     const res = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -312,7 +319,8 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
       throw new Error(err.error || `Помилка сервера: ${res.status}`);
     }
     const data = await res.json();
-    // Parse AI response
+
+    // Extract text content from response
     let content = '';
     if (data.choices && data.choices[0]) {
       content = data.choices[0].message?.content || '';
@@ -321,11 +329,44 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
     } else if (typeof data.text === 'string') {
       content = data.text;
     }
-    // Clean and parse JSON
-    content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
+    // Robust JSON extraction
+    content = content
+      .replace(/^\uFEFF/, '')                    // BOM
+      .replace(/```json\s*/gi, '')               // ```json blocks
+      .replace(/```\s*/g, '')                    // ``` blocks
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // control chars
+      .trim();
+
+    // Strategy 1: content is already valid JSON
+    try { return JSON.parse(content); } catch (_) {}
+
+    // Strategy 2: find outermost { ... }
+    let depth = 0, start = -1;
+    for (let i = 0; i < content.length; i++) {
+      if (content[i] === '{') { if (depth === 0) start = i; depth++; }
+      else if (content[i] === '}') { depth--; if (depth === 0 && start !== -1) {
+        try { return JSON.parse(content.substring(start, i + 1)); } catch (_) { start = -1; }
+      }}
+    }
+
+    // Strategy 3: fix common JSON issues and retry parse
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('AI не повернув валідний результат');
-    return JSON.parse(jsonMatch[0]);
+    if (jsonMatch) {
+      let fixed = jsonMatch[0]
+        .replace(/,\s*}/g, '}')           // trailing commas
+        .replace(/,\s*]/g, ']')           // trailing commas in arrays
+        .replace(/'/g, '"')               // single to double quotes
+        .replace(/(\w+)\s*:/g, '"$1":');  // unquoted keys
+      try { return JSON.parse(fixed); } catch (_) {}
+    }
+
+    // Auto-retry once
+    if (retryCount < 1) {
+      return apiAnalyze(retryCount + 1);
+    }
+
+    throw new Error('AI повернув некоректний формат. Спробуй ще раз');
   }
 
   // ── Run analysis ──
