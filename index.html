@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Bless Academy — Безкоштовний AI-аналіз Instagram</title>
+  <meta name="description" content="Отримай персональний контент-план для Instagram від AI. Завантаж скріншот — дізнайся які відео знімати для зростання." />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Bless Academy — AI-аналіз Instagram для б'юті-майстрів" />
+  <meta property="og:description" content="Завантаж скріншот або вкажи нік — отримай персональний контент-план від AI безкоштовно." />
+  <meta property="og:image" content="/og-image.png" />
+  <meta property="og:locale" content="uk_UA" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Bless Academy — AI-аналіз Instagram" />
+  <meta name="twitter:description" content="Безкоштовний AI-аналіз + контент-план для б'юті-майстрів." />
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#0a0a0f" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/favicon.png" />
+
+  <!-- Font: Inter Variable -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body>
+
+  <!-- ===== Animated Background Glows ===== -->
+  <div class="bg-glow bg-glow--pink"></div>
+  <div class="bg-glow bg-glow--purple"></div>
+  <div class="bg-glow bg-glow--blue"></div>
+
+  <!-- ===== Header ===== -->
+  <header class="header" id="header">
+    <div class="header__inner">
+      <a href="#" class="header__logo">Bless Academy</a>
+      <span class="header__badge">AI Аналіз</span>
+    </div>
+  </header>
+
+  <!-- ===== Progress Steps ===== -->
+  <div class="progress-bar" id="progress-bar">
+    <div class="progress-bar__inner">
+      <div class="progress-bar__track">
+        <div class="progress-bar__fill" id="progress-fill" style="width: 33%"></div>
+      </div>
+      <div class="progress-bar__steps">
+        <span class="progress-bar__step active" data-step="1">Анкета</span>
+        <span class="progress-bar__step" data-step="2">Профіль</span>
+        <span class="progress-bar__step" data-step="3">Результат</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Main Content ===== -->
+  <main class="main" id="main">
+
+    <!-- ========================================== -->
+    <!-- SCREEN 1 — Quiz                            -->
+    <!-- ========================================== -->
+    <section id="screen-quiz" class="screen active visible">
+      <div class="screen__hero">
+        <h1 class="hero__title">
+          Безкоштовний AI-аналіз<br />твого
+          <span class="text-gradient">Instagram</span>
+        </h1>
+        <p class="hero__subtitle">
+          Відповідай чесно — отримай персональний контент-план для зростання
+        </p>
+      </div>
+
+      <form id="quiz-form" autocomplete="off">
+
+        <!-- Q1: Сфера -->
+        <div class="q-block" data-q="0">
+          <p class="q-block__label">
+            <span class="q-block__num">01.</span>
+            В якій сфері ти працюєш?
+          </p>
+          <div class="q-grid q-grid--2" id="q0-options">
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="манікюр" /><span class="radio-card__text">💅 Манікюр</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="брови/вії" /><span class="radio-card__text">👁 Брови / вії</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="перукар" /><span class="radio-card__text">💇 Перукар</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="косметолог" /><span class="radio-card__text">✨ Косметолог</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="візажист" /><span class="radio-card__text">💄 Візажист</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="масажист" /><span class="radio-card__text">💆 Масажист</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="модифікація волосся" /><span class="radio-card__text">💇‍♀️ Волосся</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="інше" /><span class="radio-card__text">🔹 Інша сфера</span></label>
+          </div>
+        </div>
+
+        <!-- Q2: Мета -->
+        <div class="q-block" data-q="1">
+          <p class="q-block__label">
+            <span class="q-block__num">02.</span>
+            Яка твоя головна мета в Instagram?
+          </p>
+          <div class="q-grid q-grid--2" id="q1-options">
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1" value="більше клієнтів" /><span class="radio-card__text">Більше клієнтів</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1" value="особистий бренд" /><span class="radio-card__text">Особистий бренд</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1" value="продаж курсів" /><span class="radio-card__text">Продаж курсів</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1" value="інше" /><span class="radio-card__text">Інше</span></label>
+          </div>
+        </div>
+
+        <!-- Q3: Підписники -->
+        <div class="q-block" data-q="2">
+          <p class="q-block__label">
+            <span class="q-block__num">03.</span>
+            Скільки у тебе підписників?
+          </p>
+          <div class="q-grid q-grid--4" id="q2-options">
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2" value="до 1000" /><span class="radio-card__text">до 1K</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2" value="1000–5000" /><span class="radio-card__text">1–5K</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2" value="5000–20000" /><span class="radio-card__text">5–20K</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2" value="20000+" /><span class="radio-card__text">20K+</span></label>
+          </div>
+        </div>
+
+        <!-- Q4: Частота -->
+        <div class="q-block" data-q="3">
+          <p class="q-block__label">
+            <span class="q-block__num">04.</span>
+            Як часто ти публікуєш контент?
+          </p>
+          <div class="q-grid q-grid--3" id="q3-options">
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q3" value="щодня" /><span class="radio-card__text">Щодня</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q3" value="3–4 рази на тиждень" /><span class="radio-card__text">3–4 / тиждень</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q3" value="рідше" /><span class="radio-card__text">Рідше</span></label>
+          </div>
+        </div>
+
+        <!-- Q5: Проблема -->
+        <div class="q-block" data-q="4">
+          <p class="q-block__label">
+            <span class="q-block__num">05.</span>
+            Що тебе найбільше турбує?
+            <span class="q-block__optional">(необов'язково)</span>
+          </p>
+          <textarea
+            id="q4-text"
+            name="q4"
+            rows="3"
+            placeholder="Наприклад: мало лайків, не знаю що постити, не приходять клієнти..."
+            class="textarea"
+          ></textarea>
+        </div>
+
+        <!-- Next button -->
+        <div class="q-block__action">
+          <button type="button" id="btn-next" class="btn-primary">
+            <span>Далі →</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SCREEN 2 — Upload                          -->
+    <!-- ========================================== -->
+    <section id="screen-upload" class="screen">
+      <div class="screen__hero">
+        <h2 class="hero__title hero__title--sm">
+          Покажи свою <span class="text-gradient">сторінку</span>
+        </h2>
+        <p class="hero__subtitle">Обери зручний спосіб — скріншот або нік</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs" id="input-tabs">
+        <button type="button" class="tabs__btn active" data-tab="screenshot">📸 Скріншот</button>
+        <button type="button" class="tabs__btn" data-tab="username">🔗 Нік / посилання</button>
+      </div>
+
+      <!-- Tab: Screenshot -->
+      <div id="panel-screenshot" class="tab-panel">
+        <p class="tab-panel__hint">Зроби скріншот головної сторінки профілю (шапка + 6–9 постів)</p>
+        <div id="upload-zone" class="upload-zone">
+          <div id="upload-placeholder" class="upload-zone__placeholder">
+            <div class="upload-zone__icon">
+              <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" /></svg>
+            </div>
+            <p class="upload-zone__text">Натисни або перетягни файл сюди</p>
+            <p class="upload-zone__meta">PNG, JPG — до 10 МБ</p>
+          </div>
+          <img id="upload-preview" class="upload-zone__preview hidden" alt="Попередній перегляд" />
+        </div>
+        <input type="file" id="file-input" accept="image/*" class="sr-only" />
+        <p id="change-image" class="upload-zone__change hidden">
+          <button type="button">Змінити зображення</button>
+        </p>
+      </div>
+
+      <!-- Tab: Username -->
+      <div id="panel-username" class="tab-panel hidden">
+        <div class="username-card">
+          <div class="username-card__header">
+            <div class="username-card__icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+            </div>
+            <div class="username-card__input-wrap">
+              <label for="ig-username" class="username-card__label">Instagram нік або посилання</label>
+              <input type="text" id="ig-username" placeholder="@beauty_master" class="input" />
+            </div>
+          </div>
+          <div class="username-card__hints">
+            <p>✦ AI отримає дані профілю та дасть детальний аналіз</p>
+            <p>✦ Для кращого аналізу — використовуй скріншот</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div id="error-message" class="error-toast hidden">
+        <p id="error-text">Помилка: спробуй ще раз</p>
+        <button type="button" id="btn-retry" class="error-toast__retry">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          Спробувати ще раз
+        </button>
+      </div>
+
+      <!-- Analyze button -->
+      <div class="screen__action">
+        <button type="button" id="btn-analyze" disabled class="btn-primary">
+          <span>✨ Отримати контент-план</span>
+        </button>
+      </div>
+
+      <!-- Back -->
+      <p class="screen__back">
+        <button type="button" id="btn-back-quiz">← Повернутись до питань</button>
+      </p>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SCREEN 3 — Loading                         -->
+    <!-- ========================================== -->
+    <section id="screen-loading" class="screen">
+      <div class="loading-screen">
+        <div class="loader">
+          <div class="loader__ring"></div>
+          <div class="loader__ring loader__ring--2"></div>
+          <div class="loader__core"></div>
+        </div>
+        <div class="loading-screen__text">
+          <p class="loading-screen__title">AI створює твій контент-план...</p>
+          <p class="loading-screen__meta">Це займе 10–20 секунд</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SCREEN 4 — Results + CTA                   -->
+    <!-- ========================================== -->
+    <section id="screen-results" class="screen">
+      <div class="screen__hero">
+        <h2 class="hero__title hero__title--sm">
+          Твій <span class="text-shine">AI-аналіз</span> готовий ✨
+        </h2>
+        <p class="hero__subtitle">Ось твій персональний контент-план</p>
+      </div>
+
+      <!-- Dynamic AI results -->
+      <div id="results-container"></div>
+
+      <!-- ===== CTA Section ===== -->
+      <div class="cta-section" id="cta-section">
+        <div class="cta-section__header">
+          <h3 class="cta-section__title">
+            Хочеш, щоб ми <span class="text-gradient">зняли ці відео</span> за тебе?
+          </h3>
+          <p class="cta-section__subtitle">Обери зручний спосіб зв'язку</p>
+        </div>
+
+        <div class="contact-grid">
+          <!-- 1. Schedule callback -->
+          <button type="button" class="contact-card" id="cta-callback">
+            <div class="contact-card__icon">📞</div>
+            <h4 class="contact-card__title">Запланувати дзвінок</h4>
+            <p class="contact-card__desc">Обери час — я зателефоную</p>
+          </button>
+
+          <!-- 2. Call directly -->
+          <a href="tel:+380000000000" class="contact-card" id="cta-call">
+            <div class="contact-card__icon">📱</div>
+            <h4 class="contact-card__title">Зателефонувати</h4>
+            <p class="contact-card__desc">Пн–Пт, 11:00–19:00</p>
+          </a>
+
+          <!-- 3. Write a message -->
+          <a href="https://t.me/" target="_blank" class="contact-card" id="cta-message">
+            <div class="contact-card__icon">💬</div>
+            <h4 class="contact-card__title">Написати</h4>
+            <p class="contact-card__desc">Відповім у будь-який час</p>
+          </a>
+
+          <!-- 4. Zoom meeting -->
+          <a href="https://calendar.app.google/" target="_blank" class="contact-card" id="cta-zoom">
+            <div class="contact-card__icon">📹</div>
+            <h4 class="contact-card__title">Zoom зустріч</h4>
+            <p class="contact-card__desc">Обери слот у календарі</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== Callback Modal ===== -->
+  <div id="callback-modal" class="modal hidden">
+    <div class="modal__backdrop" id="modal-backdrop"></div>
+    <div class="modal__content">
+      <button type="button" class="modal__close" id="modal-close">✕</button>
+      <h3 class="modal__title">Запланувати дзвінок</h3>
+      <p class="modal__subtitle">Я зателефоную у зручний для тебе час</p>
+
+      <form id="callback-form" class="modal__form">
+        <div class="form-group">
+          <label for="lead-name">Ім'я</label>
+          <input type="text" id="lead-name" name="name" placeholder="Олена" required class="input" />
+        </div>
+        <div class="form-group">
+          <label for="lead-phone">Телефон</label>
+          <input type="tel" id="lead-phone" name="phone" placeholder="+380..." required class="input" />
+        </div>
+        <div class="form-group">
+          <label for="lead-ig">Instagram</label>
+          <input type="text" id="lead-ig" name="instagram" placeholder="@beauty_master" class="input" />
+        </div>
+        <div class="form-group">
+          <label for="lead-time">Коли зручно?</label>
+          <select id="lead-time" name="time" class="input">
+            <option value="10:00–12:00">Ранок (10:00–12:00)</option>
+            <option value="12:00–15:00">День (12:00–15:00)</option>
+            <option value="15:00–18:00">Вечір (15:00–18:00)</option>
+            <option value="будь-коли">Будь-коли</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary" id="btn-submit-lead">
+          <span>Надіслати заявку</span>
+        </button>
+        <p class="modal__note">Зв'яжемось протягом 2 годин 💖</p>
+      </form>
+
+      <!-- Success state -->
+      <div id="callback-success" class="modal__success hidden">
+        <div class="modal__success-icon">✅</div>
+        <h3>Заявку прийнято!</h3>
+        <p>Зателефоную у вказаний час. Дякую! 💖</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
