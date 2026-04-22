@@ -14,6 +14,7 @@
     username: '',
     inputMode: 'screenshot',
     aiResult: null,
+    profileData: null,
     formStartTime: Date.now(),
     utm: {}
   };
@@ -207,17 +208,50 @@
   }
   function hideError() { els.errorMessage.classList.add('hidden'); }
 
+  // ── Fetch Instagram profile ──
+  async function fetchProfile(username) {
+    try {
+      const res = await fetch('/api/instagram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data || null;
+    } catch (_) { return null; }
+  }
+
   // ── System prompt ──
   function buildPrompt() {
     const a = state.answers;
     const q4 = $('#q4-text').value.trim();
+    const pd = state.profileData;
+
     let userMsg = `Проаналізуй Instagram-профіль б'юті-майстра.\n\nАнкета:\n- Сфера: ${a.q0}\n- Мета: ${a.q1}\n- Підписники: ${a.q2}\n- Частота контенту: ${a.q3}`;
     if (q4) userMsg += `\n- Що турбує: ${q4}`;
-    if (state.inputMode === 'username' && state.username) userMsg += `\n- Instagram нік: ${state.username}`;
 
+    // Add real profile data if available
+    if (pd) {
+      userMsg += `\n\n📊 РЕАЛЬНІ дані профілю @${pd.username}:`;
+      if (pd.displayName) userMsg += `\n- Ім'я: ${pd.displayName}`;
+      if (pd.bio) userMsg += `\n- Біо: ${pd.bio}`;
+      if (pd.followers) userMsg += `\n- Підписники: ${pd.followers}`;
+      if (pd.following) userMsg += `\n- Підписки: ${pd.following}`;
+      if (pd.posts) userMsg += `\n- Постів: ${pd.posts}`;
+      if (pd.isPrivate) userMsg += `\n- ⚠️ Профіль ЗАКРИТИЙ`;
+      if (pd.isVerified) userMsg += `\n- ✅ Верифікований`;
+      if (pd.externalUrl) userMsg += `\n- Посилання: ${pd.externalUrl}`;
+    } else if (state.inputMode === 'username' && state.username) {
+      userMsg += `\n- Instagram нік: @${state.username} (дані профілю недоступні — аналізуй на основі анкети)`;
+    }
+
+    const hasRealData = !!pd;
     const systemPrompt = `Ти — провідний SMM-стратег з 10+ роками досвіду в б'юті-індустрії. Ти аналізуєш Instagram-сторінки б'юті-майстрів і створюєш конкретні контент-плани.
+${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. Аналізуй їх уважно. Якщо профіль закритий — рекомендуй відкрити. Якщо біо порожнє — запропонуй текст. Оцінку став справедливо: мало підписників/постів = нижчий бал, багато = вищий.' : '\nСкріншот або нік без даних — зосередься на стратегії та контент-ідеях для ніші.'}
 
 ВАЖЛИВО: відповідай ТІЛЬКИ валідним JSON, без \`\`\`json тегів, без пояснень.
+ОЦІНКА SCORE: має бути ДИНАМІЧНОЮ від 10 до 99. Оцінюй справедливо!
 
 Формат відповіді JSON:
 {
@@ -293,9 +327,20 @@
   // ── Run analysis ──
   async function runAnalysis() {
     hideError();
-    if (state.inputMode === 'username') state.username = els.igUsername.value.trim().replace(/^@/, '');
+    state.profileData = null;
+
+    if (state.inputMode === 'username') {
+      state.username = els.igUsername.value.trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '');
+    }
+
     showScreen('screen-loading');
+
     try {
+      // Fetch real Instagram data if username mode
+      if (state.inputMode === 'username' && state.username) {
+        state.profileData = await fetchProfile(state.username);
+      }
+
       state.aiResult = await apiAnalyze();
       renderResults(state.aiResult);
       showScreen('screen-results');
