@@ -334,6 +334,7 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
     }
 
     showScreen('screen-loading');
+    if (typeof fbq === 'function') fbq('trackCustom', 'AnalysisStarted');
 
     try {
       // Fetch real Instagram data if username mode
@@ -344,6 +345,7 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
       state.aiResult = await apiAnalyze();
       renderResults(state.aiResult);
       showScreen('screen-results');
+      if (typeof fbq === 'function') fbq('trackCustom', 'AnalysisCompleted', { score: state.aiResult.score });
     } catch (err) {
       showScreen('screen-upload');
       showError(err.message || 'Щось пішло не так');
@@ -578,6 +580,7 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
     // Always show success
     els.callbackForm.classList.add('hidden');
     els.callbackSuccess.classList.remove('hidden');
+    if (typeof fbq === 'function') fbq('track', 'Lead');
     setTimeout(closeModal, 3000);
   }
 
@@ -592,6 +595,7 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
     els.btnNext.addEventListener('click', () => {
       state.answers.q4 = $('#q4-text').value.trim();
       showScreen('screen-upload');
+      if (typeof fbq === 'function') fbq('trackCustom', 'QuizCompleted');
     });
 
     els.btnBackQuiz.addEventListener('click', () => showScreen('screen-quiz'));
