@@ -185,7 +185,10 @@
     <!-- SCREEN 1 — Quiz                            -->
     <!-- ========================================== -->
     <section id="screen-quiz" class="screen active visible">
-      <div class="screen__hero">
+      <div class="screen__hero screen__hero--with-stickers">
+        <div class="sticker sticker--1">💅</div>
+        <div class="sticker sticker--2">✨</div>
+        <div class="sticker sticker--3">💬</div>
         <h1 class="hero__title">
           Дізнайся, чому<br /><span class="text-gradient">Instagram</span> не приводить клієнтів
         </h1>
@@ -272,7 +275,7 @@
         </div>
 
         <!-- Next button -->
-        <div class="q-block__action">
+        <div class="q-block__action sticky-action">
           <button type="button" id="btn-next" class="btn-primary">
             <span>Далі →</span>
           </button>
@@ -368,16 +371,15 @@
       </div>
 
       <!-- Analyze button -->
-      <div class="screen__action">
+      <!-- Analyze button & Back -->
+      <div class="screen__action sticky-action">
         <button type="button" id="btn-analyze" disabled class="btn-primary">
           <span>✨ Показати, що виправити</span>
         </button>
+        <p class="screen__back" style="margin-top: 10px;">
+          <button type="button" id="btn-back-quiz">← Повернутись до питань</button>
+        </p>
       </div>
-
-      <!-- Back -->
-      <p class="screen__back">
-        <button type="button" id="btn-back-quiz">← Повернутись до питань</button>
-      </p>
     </section>
 
     <!-- ========================================== -->

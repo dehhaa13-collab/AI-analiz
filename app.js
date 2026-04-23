@@ -106,6 +106,15 @@
         checkQuizValid();
         // Track each quiz answer
         if (window.BA) BA.track('quiz_answer', { question: name, answer: input.value });
+        
+        // Auto-scroll to next block
+        const currentBlock = card.closest('.q-block');
+        const nextBlock = currentBlock.nextElementSibling;
+        if (nextBlock && nextBlock.classList.contains('q-block')) {
+          setTimeout(() => {
+            nextBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 200);
+        }
       });
     });
   }

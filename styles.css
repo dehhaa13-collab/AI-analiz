@@ -54,16 +54,65 @@ a{color:inherit;text-decoration:none}
 @supports(padding-top:env(safe-area-inset-top)){.main{padding-top:calc(110px + env(safe-area-inset-top))}}
 
 /* ========== Screens ========== */
-.screen{display:none;opacity:0;transform:translateY(16px);transition:opacity .45s cubic-bezier(.4,0,.2,1),transform .45s cubic-bezier(.4,0,.2,1)}
+.screen{display:none;opacity:0;transform:translateY(24px) scale(0.98);transition:opacity .5s cubic-bezier(.34,1.56,.64,1),transform .5s cubic-bezier(.34,1.56,.64,1); transform-origin: center top;}
 .screen.active{display:block}
-.screen.visible{opacity:1;transform:translateY(0)}
+.screen.visible{opacity:1;transform:translateY(0) scale(1)}
+
+/* ========== Sticky Actions (Mobile) ========== */
+@media (max-width: 600px) {
+  .sticky-action {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    background: linear-gradient(to top, rgba(10,10,15,0.95) 40%, rgba(10,10,15,0));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 100;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+  }
+  .main {
+    padding-bottom: calc(120px + env(safe-area-inset-bottom, 0)) !important;
+  }
+}
 
 /* ========== Hero Text ========== */
-.screen__hero{text-align:center;margin-bottom:32px;padding-top:8px}
+.screen__hero{text-align:center;margin-bottom:32px;padding-top:8px;position:relative;}
+.screen__hero--with-stickers .sticker {
+  position: absolute;
+  font-size: 1.5rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 50%;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  animation: floatSticker 6s ease-in-out infinite alternate;
+  z-index: -1;
+}
+.sticker--1 { top: -10px; left: 10%; transform: rotate(-15deg); animation-delay: 0s; }
+.sticker--2 { top: 20px; right: 5%; transform: rotate(10deg); animation-delay: -2s; }
+.sticker--3 { bottom: 10px; left: 5%; transform: rotate(-5deg); animation-delay: -4s; }
+@keyframes floatSticker {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(-15px) rotate(15deg); }
+}
+
 .hero__title{font-size:1.625rem;font-weight:700;line-height:1.25;margin:0 0 10px}
 .hero__title--sm{font-size:1.375rem}
 .hero__subtitle{font-size:.875rem;color:var(--text-2);margin:0;max-width:400px;margin-inline:auto}
-.text-gradient{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.text-gradient{
+  background: linear-gradient(135deg, #f472b6, #c084fc, #f472b6);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientFlow 4s ease infinite;
+}
+@keyframes gradientFlow { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
 .text-shine{background:linear-gradient(110deg,#f472b6 10%,#fff 30%,#c084fc 50%,#f472b6 70%);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 4s linear infinite;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 @keyframes shine{to{background-position:200% center}}
 
