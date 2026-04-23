@@ -23,7 +23,7 @@ function validate(body) {
   return null;
 }
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash-lite'];
+const GEMINI_MODELS = ['gemini-2.5-flash'];
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
