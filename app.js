@@ -15,6 +15,7 @@
     inputMode: 'screenshot',
     aiResult: null,
     profileData: null,
+    profileScreenshot: null,
     formStartTime: Date.now(),
     utm: {}
   };
@@ -209,10 +210,42 @@
   function showError(msg) {
     els.errorText.textContent = msg;
     els.errorMessage.classList.remove('hidden');
+    // Remove switch-to-screenshot button if exists
+    const existingSwitch = els.errorMessage.querySelector('.error-toast__switch');
+    if (existingSwitch) existingSwitch.remove();
   }
+
+  function showProfileError(username) {
+    els.errorText.innerHTML = `Не вдалося знайти профіль <strong>@${esc(username)}</strong>.<br>Перевір нік або завантаж скріншот для аналізу.`;
+    els.errorMessage.classList.remove('hidden');
+
+    // Remove old switch button if exists
+    const existingSwitch = els.errorMessage.querySelector('.error-toast__switch');
+    if (existingSwitch) existingSwitch.remove();
+
+    // Add switch-to-screenshot button
+    const switchBtn = document.createElement('button');
+    switchBtn.type = 'button';
+    switchBtn.className = 'error-toast__retry error-toast__switch';
+    switchBtn.style.marginTop = '8px';
+    switchBtn.innerHTML = '📸 Завантажити скріншот замість ніку';
+    switchBtn.addEventListener('click', () => {
+      hideError();
+      // Switch to screenshot tab
+      $$('.tabs__btn').forEach(b => b.classList.remove('active'));
+      const screenshotTab = $('.tabs__btn[data-tab="screenshot"]');
+      if (screenshotTab) screenshotTab.classList.add('active');
+      state.inputMode = 'screenshot';
+      $('#panel-screenshot').classList.remove('hidden');
+      $('#panel-username').classList.add('hidden');
+      checkUploadValid();
+    });
+    els.errorMessage.appendChild(switchBtn);
+  }
+
   function hideError() { els.errorMessage.classList.add('hidden'); }
 
-  // ── Fetch Instagram profile ──
+  // ── Fetch Instagram profile + screenshot ──
   async function fetchProfile(username) {
     try {
       const res = await fetch('/api/instagram', {
@@ -220,10 +253,14 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username })
       });
-      if (!res.ok) return null;
+      if (!res.ok) return { data: null, screenshot: null, reason: 'error' };
       const json = await res.json();
-      return json.data || null;
-    } catch (_) { return null; }
+      return {
+        data: json.data || null,
+        screenshot: json.screenshot || null,
+        reason: json.reason || null
+      };
+    } catch (_) { return { data: null, screenshot: null, reason: 'error' }; }
   }
 
   // ── System prompt ──
@@ -235,7 +272,7 @@
     let userMsg = `Проаналізуй Instagram-профіль б'юті-майстра.\n\nАнкета:\n- Сфера: ${a.q0}\n- Мета: ${a.q1}\n- Підписники: ${a.q2}\n- Частота контенту: ${a.q3}`;
     if (q4) userMsg += `\n- Що турбує: ${q4}`;
 
-    // Add real profile data if available
+    // Add real profile data (only real data — never fake)
     if (pd) {
       userMsg += `\n\n📊 РЕАЛЬНІ дані профілю @${pd.username}:`;
       if (pd.displayName) userMsg += `\n- Ім'я: ${pd.displayName}`;
@@ -246,13 +283,13 @@
       if (pd.isPrivate) userMsg += `\n- ⚠️ Профіль ЗАКРИТИЙ`;
       if (pd.isVerified) userMsg += `\n- ✅ Верифікований`;
       if (pd.externalUrl) userMsg += `\n- Посилання: ${pd.externalUrl}`;
-    } else if (state.inputMode === 'username' && state.username) {
-      userMsg += `\n- Instagram нік: @${state.username} (дані профілю недоступні — аналізуй на основі анкети)`;
     }
 
     const hasRealData = !!pd;
+    const hasVisual = !!(state.imageBase64 || state.profileScreenshot);
     const systemPrompt = `Ти — провідний SMM-стратег з 10+ роками досвіду в б'юті-індустрії. Ти аналізуєш Instagram-сторінки б'юті-майстрів і створюєш конкретні контент-плани.
-${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. Аналізуй їх уважно. Якщо профіль закритий — рекомендуй відкрити. Якщо біо порожнє — запропонуй текст. Оцінку став справедливо: мало підписників/постів = нижчий бал, багато = вищий.' : '\nСкріншот або нік без даних — зосередься на стратегії та контент-ідеях для ніші.'}
+${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. Аналізуй їх уважно. Якщо профіль закритий — рекомендуй відкрити. Якщо біо порожнє — запропонуй текст. Оцінку став справедливо: мало підписників/постів = нижчий бал, багато = вищий.' : '\nЗосередься на стратегії та контент-ідеях для ніші.'}
+${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ\'ЯЗКОВО оціни візуальну складову:\n- Наскільки привабливий аватар? Чи виглядає професійно?\n- Як виглядає сітка публікацій? Чи є єдиний стиль?\n- Якість фотографій та відео\n- Кольорова палітра та загальне враження\n- Чи виділяється профіль серед конкурентів?\nВключи свою оцінку візуалу в summary та problems.' : ''}
 
 ВАЖЛИВО: відповідай ТІЛЬКИ валідним JSON, без \`\`\`json тегів, без пояснень.
 ОЦІНКА SCORE: має бути ДИНАМІЧНОЮ від 10 до 99. Оцінюй справедливо!
@@ -285,12 +322,20 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
 
     const messages = [{ role: 'system', content: systemPrompt }];
 
-    if (state.inputMode === 'screenshot' && state.imageBase64) {
+    // Determine which image to send (user screenshot OR server-captured screenshot)
+    const imageToSend = state.imageBase64 || state.profileScreenshot;
+
+    if (imageToSend) {
+      const imageLabel = state.imageBase64
+        ? '\n\nОсь скріншот профілю для аналізу:'
+        : (pd?._screenshotType === 'profile_pic_only'
+            ? '\n\nОсь аватарка профілю — оціни її якість та привабливість:'
+            : '\n\nОсь скріншот сторінки профілю — оціни візуальну складову:');
       messages.push({
         role: 'user',
         content: [
-          { type: 'text', text: userMsg + '\n\nОсь скріншот профілю для аналізу:' },
-          { type: 'image_url', image_url: { url: state.imageBase64 } }
+          { type: 'text', text: userMsg + imageLabel },
+          { type: 'image_url', image_url: { url: imageToSend } }
         ]
       });
     } else {
@@ -373,6 +418,7 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
   async function runAnalysis() {
     hideError();
     state.profileData = null;
+    state.profileScreenshot = null;
 
     if (state.inputMode === 'username') {
       state.username = els.igUsername.value.trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '');
@@ -382,9 +428,20 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
     if (window.BA) BA.track('analysis_started', { input_mode: state.inputMode, niche: state.answers.q0 || '' });
 
     try {
-      // Fetch real Instagram data if username mode
+      // Fetch real Instagram data + screenshot if username mode
       if (state.inputMode === 'username' && state.username) {
-        state.profileData = await fetchProfile(state.username);
+        const result = await fetchProfile(state.username);
+
+        if (!result.data) {
+          // No real data found → show error, don't proceed with fake analysis
+          showScreen('screen-upload');
+          showProfileError(state.username);
+          if (window.BA) BA.track('profile_not_found', { username: state.username });
+          return;
+        }
+
+        state.profileData = result.data;
+        state.profileScreenshot = result.screenshot; // May be null
       }
 
       state.aiResult = await apiAnalyze();
@@ -394,7 +451,8 @@ ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. А�
         score: state.aiResult.score,
         niche: state.answers.q0,
         input_mode: state.inputMode,
-        has_profile_data: !!state.profileData
+        has_profile_data: !!state.profileData,
+        has_screenshot: !!(state.imageBase64 || state.profileScreenshot)
       });
       // FB standard event for retargeting
       if (typeof fbq === 'function') fbq('track', 'ViewContent', {

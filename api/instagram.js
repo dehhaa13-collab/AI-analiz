@@ -1,4 +1,4 @@
-export const config = { maxDuration: 15 };
+export const config = { maxDuration: 25 };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
@@ -11,6 +11,7 @@ export default async function handler(req, res) {
 
   const igUrl = `https://www.instagram.com/${clean}/`;
 
+  // ─── 1. Fetch HTML via CORS proxies ───
   const proxies = [
     `https://api.allorigins.win/raw?url=${encodeURIComponent(igUrl)}`,
     `https://corsproxy.io/?${encodeURIComponent(igUrl)}`
@@ -31,9 +32,16 @@ export default async function handler(req, res) {
     } catch (_) { continue; }
   }
 
-  if (!html) return res.status(200).json({ ok: true, data: null, reason: 'no_data' });
+  if (!html) {
+    return res.status(200).json({
+      ok: true,
+      data: null,
+      screenshot: null,
+      reason: 'profile_not_found'
+    });
+  }
 
-  // Parse OG meta
+  // ─── 2. Parse OG meta ───
   const getMeta = (prop) => {
     const r1 = new RegExp(`<meta[^>]*(?:property|name)=["']${prop}["'][^>]*content=["']([^"']*)["']`, 'i');
     const r2 = new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*(?:property|name)=["']${prop}["']`, 'i');
@@ -43,6 +51,7 @@ export default async function handler(req, res) {
 
   const ogDesc = getMeta('og:description') || '';
   const ogTitle = getMeta('og:title') || '';
+  const ogImage = getMeta('og:image') || '';
 
   const counts = ogDesc.match(/([\d,.]+[KMkm]?)\s*Followers?,?\s*([\d,.]+[KMkm]?)\s*Following,?\s*([\d,.]+[KMkm]?)\s*Posts?/i);
 
@@ -61,7 +70,8 @@ export default async function handler(req, res) {
     posts: counts ? counts[3] : null,
     isPrivate: html.includes('"is_private":true'),
     isVerified: html.includes('"is_verified":true'),
-    externalUrl: null
+    externalUrl: null,
+    profilePicUrl: ogImage || null
   };
 
   const extMatch = html.match(/"external_url":"(https?:[^"]+)"/);
@@ -69,5 +79,70 @@ export default async function handler(req, res) {
 
   const hasData = data.followers || data.bio || data.displayName;
 
-  return res.status(200).json({ ok: true, data: hasData ? data : null, reason: hasData ? null : 'no_data' });
+  if (!hasData) {
+    return res.status(200).json({
+      ok: true,
+      data: null,
+      screenshot: null,
+      reason: 'profile_not_found'
+    });
+  }
+
+  // ─── 3. Capture screenshot for AI visual analysis ───
+  let screenshot = null;
+
+  // Strategy A: Full page screenshot via thum.io (free, no API key)
+  const screenshotServices = [
+    `https://image.thum.io/get/width/1080/crop/1920/noanimate/${igUrl}`,
+    `https://image.thum.io/get/width/1080/noanimate/${igUrl}`
+  ];
+
+  for (const ssUrl of screenshotServices) {
+    if (screenshot) break;
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 12000);
+      const imgRes = await fetch(ssUrl, { signal: controller.signal });
+      clearTimeout(tid);
+
+      if (imgRes.ok) {
+        const ct = imgRes.headers.get('content-type') || '';
+        if (ct.startsWith('image/')) {
+          const buf = Buffer.from(await imgRes.arrayBuffer());
+          // Skip if too small (error/redirect page) or too large
+          if (buf.length > 10000 && buf.length < 4 * 1024 * 1024) {
+            screenshot = `data:${ct.split(';')[0]};base64,${buf.toString('base64')}`;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Strategy B: If no full screenshot, try fetching profile picture from og:image
+  if (!screenshot && ogImage) {
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 6000);
+      const imgRes = await fetch(ogImage, { signal: controller.signal });
+      clearTimeout(tid);
+
+      if (imgRes.ok) {
+        const ct = imgRes.headers.get('content-type') || 'image/jpeg';
+        if (ct.startsWith('image/')) {
+          const buf = Buffer.from(await imgRes.arrayBuffer());
+          if (buf.length > 1000 && buf.length < 3 * 1024 * 1024) {
+            screenshot = `data:${ct.split(';')[0]};base64,${buf.toString('base64')}`;
+            data._screenshotType = 'profile_pic_only';
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  return res.status(200).json({
+    ok: true,
+    data,
+    screenshot,
+    reason: null
+  });
 }
