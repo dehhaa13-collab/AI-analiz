@@ -375,7 +375,7 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       const err = new Error(errBody.error || `Помилка сервера: ${res.status}`);
-      err.debugInfo = { code: errBody.code || res.status, detail: `keys=${errBody.keys_tried || '?'}, groq=${errBody.has_groq || '?'}, ${errBody.duration || ''}` };
+      err.debugInfo = { code: errBody.code || res.status, detail: errBody.detail || errBody.duration || '' };
       throw err;
     }
     const data = await res.json();
