@@ -4,17 +4,21 @@ export const config = { maxDuration: 60 };
 // ERROR CODES
 // ═══════════════════════════════════════════
 const ERROR_CODES = {
-  NO_KEYS:       { code: 'NO_KEYS',       status: 500, msg: '❌ API ключ OpenAI не налаштований' },
+  NO_KEYS:       { code: 'NO_KEYS',       status: 500, msg: '❌ API ключі не налаштовані' },
   RATE_LIMIT:    { code: 'RATE_LIMIT',    status: 429, msg: '⏳ Забагато запитів — зачекай хвилину' },
   DAILY_LIMIT:   { code: 'DAILY_LIMIT',   status: 429, msg: '📅 Денний ліміт вичерпано — спробуй завтра' },
   INVALID_REQ:   { code: 'INVALID_REQ',   status: 400, msg: '⚠️ Невалідний запит' },
   TOO_MANY_MSG:  { code: 'TOO_MANY_MSG',  status: 400, msg: '⚠️ Занадто багато повідомлень' },
   REQ_TOO_BIG:   { code: 'REQ_TOO_BIG',   status: 400, msg: '⚠️ Запит занадто великий (макс. 10 МБ)' },
-  API_ERROR:     { code: 'API_ERROR',     status: 502, msg: '💥 Помилка API. Спробуй ще раз' },
+  QUOTA:         { code: 'QUOTA',         status: 429, msg: '🔑 Вичерпано квоту Gemini' },
+  OVERLOADED:    { code: 'OVERLOADED',    status: 503, msg: '🔥 Сервер AI перевантажений' },
+  API_ERROR:     { code: 'API_ERROR',     status: 502, msg: '💥 Помилка API' },
+  ALL_FAILED:    { code: 'ALL_FAILED',    status: 503, msg: '😔 Всі AI сервіси тимчасово недоступні' },
+  OPENAI_BUDGET: { code: 'OPENAI_BUDGET', status: 429, msg: '💰 Денний бюджет OpenAI вичерпано. Спробуй завтра' },
 };
 
 // ═══════════════════════════════════════════
-// RATE LIMITER
+// RATE LIMITER (per IP)
 // ═══════════════════════════════════════════
 const ipRequests = new Map();
 
@@ -26,9 +30,31 @@ function rateLimit(ip) {
   entry.count++;
   entry.daily++;
   ipRequests.set(ip, entry);
-  if (entry.count > 5) return ERROR_CODES.RATE_LIMIT; // Relaxed rate limit slightly
-  if (entry.daily > 50) return ERROR_CODES.DAILY_LIMIT; // Relaxed daily limit
+  if (entry.count > 5) return ERROR_CODES.RATE_LIMIT;
+  if (entry.daily > 50) return ERROR_CODES.DAILY_LIMIT;
   return null;
+}
+
+// ═══════════════════════════════════════════
+// OPENAI DAILY BUDGET GUARD
+// Prevents OpenAI from eating all your money.
+// Max 100 requests/day to OpenAI (~$0.50/day max)
+// ═══════════════════════════════════════════
+const openaiUsage = { count: 0, resetAt: 0 };
+const OPENAI_DAILY_MAX = 100; // ~$0.005 per request × 100 = ~$0.50/day max
+
+function canUseOpenAI() {
+  const now = Date.now();
+  if (now > openaiUsage.resetAt) {
+    openaiUsage.count = 0;
+    openaiUsage.resetAt = now + 86400000; // reset in 24h
+  }
+  return openaiUsage.count < OPENAI_DAILY_MAX;
+}
+
+function trackOpenAIUsage() {
+  openaiUsage.count++;
+  console.log(`💰 OpenAI usage: ${openaiUsage.count}/${OPENAI_DAILY_MAX} today`);
 }
 
 // ═══════════════════════════════════════════
@@ -38,115 +64,249 @@ function validate(body) {
   if (!body || !body.messages || !Array.isArray(body.messages)) return ERROR_CODES.INVALID_REQ;
   if (body.messages.length > 5) return ERROR_CODES.TOO_MANY_MSG;
   const totalSize = JSON.stringify(body.messages).length;
-  if (totalSize > 10 * 1024 * 1024) return ERROR_CODES.REQ_TOO_BIG; // Up to 10MB for OpenAI
+  if (totalSize > 10 * 1024 * 1024) return ERROR_CODES.REQ_TOO_BIG;
   return null;
 }
 
 // ═══════════════════════════════════════════
-// OPENAI API
+// GEMINI API (FREE — Primary)
 // ═══════════════════════════════════════════
-async function callOpenAI(messages, apiKey) {
-  // Our frontend already outputs messages in exactly the format OpenAI expects
-  // [{role: 'user', content: [{type: 'text', text: '...'}, {type: 'image_url', image_url: {url: 'data:image...'}}]}]
-  
-  const payload = {
-    model: 'gpt-4o-mini',
-    messages: messages,
-    response_format: { type: 'json_object' },
-    temperature: 0.7,
-    max_tokens: 3000
-  };
+const GEMINI_MODELS = ['gemini-2.5-flash'];
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+function classifyGeminiError(statusCode, errorBody) {
+  const msg = errorBody?.error?.message || '';
+  const status = errorBody?.error?.status || '';
+  if (statusCode === 429 || status === 'RESOURCE_EXHAUSTED' || msg.includes('quota') || msg.includes('Quota')) {
+    return { ...ERROR_CODES.QUOTA, detail: msg.slice(0, 200) };
+  }
+  if (statusCode === 503 || status === 'UNAVAILABLE' || msg.includes('high demand') || msg.includes('overloaded')) {
+    return { ...ERROR_CODES.OVERLOADED, detail: msg.slice(0, 200) };
+  }
+  if (statusCode === 400) {
+    return { ...ERROR_CODES.API_ERROR, detail: `Bad Request: ${msg.slice(0, 200)}` };
+  }
+  if (statusCode === 403) {
+    return { ...ERROR_CODES.API_ERROR, detail: `Forbidden: ключ невалідний` };
+  }
+  return { ...ERROR_CODES.API_ERROR, detail: `HTTP ${statusCode}: ${msg.slice(0, 200)}` };
+}
+
+async function callGeminiWithModel(model, messages, apiKey) {
+  const contents = [];
+  const systemInstruction = messages.find(m => m.role === 'system');
+  for (const msg of messages.filter(m => m.role !== 'system')) {
+    const parts = [];
+    if (typeof msg.content === 'string') {
+      parts.push({ text: msg.content });
+    } else if (Array.isArray(msg.content)) {
+      for (const c of msg.content) {
+        if (c.type === 'text') parts.push({ text: c.text });
+        else if (c.type === 'image_url') {
+          const base64 = c.image_url.url.replace(/^data:image\/\w+;base64,/, '');
+          const mimeMatch = c.image_url.url.match(/^data:(image\/\w+);/);
+          parts.push({ inline_data: { mime_type: mimeMatch ? mimeMatch[1] : 'image/jpeg', data: base64 } });
+        }
+      }
+    }
+    contents.push({ role: msg.role === 'assistant' ? 'model' : 'user', parts });
+  }
+
+  const payload = {
+    contents,
+    generationConfig: { temperature: 0.7, maxOutputTokens: 3000, responseMimeType: 'application/json' }
+  };
+  if (systemInstruction) {
+    payload.system_instruction = { parts: [{ text: systemInstruction.content }] };
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
     method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
+    const classified = classifyGeminiError(res.status, errBody);
+    const err = new Error(classified.detail || classified.msg);
+    err.classified = classified;
+    throw err;
+  }
+
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!text) {
+    const err = new Error('Gemini: пуста відповідь');
+    err.classified = { ...ERROR_CODES.API_ERROR, detail: 'Empty response' };
+    throw err;
+  }
+  return { choices: [{ message: { content: text } }] };
+}
+
+async function callGemini(messages, apiKeys) {
+  const keys = Array.isArray(apiKeys) ? apiKeys : [apiKeys];
+  const attemptLog = [];
+
+  for (let keyIdx = 0; keyIdx < keys.length; keyIdx++) {
+    const key = keys[keyIdx];
+    const keyLabel = `key${keyIdx + 1}(…${key.slice(-4)})`;
+
+    for (const model of GEMINI_MODELS) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const label = `${keyLabel}/${model}/try${attempt + 1}`;
+        try {
+          console.log(`🔄 Gemini ${label}...`);
+          const result = await callGeminiWithModel(model, messages, key);
+          console.log(`✅ Gemini ${label} — success`);
+          return result;
+        } catch (err) {
+          const classified = err.classified || ERROR_CODES.API_ERROR;
+          attemptLog.push({ attempt: label, code: classified.code, detail: err.message?.slice(0, 150) });
+          console.warn(`❌ Gemini ${label}: [${classified.code}] ${err.message?.slice(0, 150)}`);
+          if (classified.code === 'QUOTA') break;
+          if (classified.code === 'OVERLOADED' && attempt === 0) { await delay(3000); continue; }
+          break;
+        }
+      }
+    }
+  }
+
+  console.error('💀 ALL GEMINI KEYS FAILED:', JSON.stringify(attemptLog));
+  const allQuota = attemptLog.every(a => a.code === 'QUOTA');
+  const allOverloaded = attemptLog.every(a => a.code === 'OVERLOADED');
+  const error = new Error(allQuota ? 'Gemini: всі ключі вичерпали квоту' : allOverloaded ? 'Gemini: сервер перевантажений' : `Gemini: ${attemptLog.at(-1)?.detail || 'невідома помилка'}`);
+  error.attemptLog = attemptLog;
+  error.geminiCode = allQuota ? 'QUOTA' : allOverloaded ? 'OVERLOADED' : 'API_ERROR';
+  throw error;
+}
+
+// ═══════════════════════════════════════════
+// OPENAI API (PAID — Fallback only)
+// ═══════════════════════════════════════════
+async function callOpenAI(messages, apiKey) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages,
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+      max_tokens: 3000
+    })
+  });
+
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
     const msg = errBody?.error?.message || `HTTP ${res.status}`;
-    const err = new Error(msg);
+    const err = new Error(`OpenAI: ${msg}`);
     err.code = 'API_ERROR';
-    err.detail = msg;
     throw err;
   }
 
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content || '';
-  
-  if (!content) {
-    const err = new Error('Пуста відповідь від OpenAI');
-    err.code = 'API_ERROR';
-    err.detail = 'Empty choices array';
-    throw err;
-  }
-
+  if (!content) throw new Error('OpenAI: пуста відповідь');
   return { choices: [{ message: { content } }] };
 }
 
 // ═══════════════════════════════════════════
 // MAIN HANDLER
+// Strategy: Gemini (free) → OpenAI (paid fallback, budget-limited)
 // ═══════════════════════════════════════════
 export default async function handler(req, res) {
   const startTime = Date.now();
-  
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed', code: 'METHOD_NOT_ALLOWED' });
   }
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
-  console.log(`📥 New request from ${ip}`);
-  
-  // Rate limit
+  console.log(`📥 Request from ${ip}`);
+
   const rlError = rateLimit(ip);
   if (rlError) {
-    console.warn(`🚫 Rate limited: ${ip} → ${rlError.code}`);
-    return res.status(rlError.status).json({ 
-      error: rlError.msg, 
-      code: rlError.code 
-    });
+    console.warn(`🚫 Rate limited: ${ip}`);
+    return res.status(rlError.status).json({ error: rlError.msg, code: rlError.code });
   }
 
-  // Validate
   const vError = validate(req.body);
   if (vError) {
-    return res.status(vError.status).json({ 
-      error: vError.msg, 
-      code: vError.code 
-    });
+    return res.status(vError.status).json({ error: vError.msg, code: vError.code });
   }
 
+  // Collect keys
+  const geminiKeys = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GEMINI_API_KEY_3
+  ].filter(Boolean);
   const openaiKey = process.env.OPENAI_API_KEY;
 
-  if (!openaiKey) {
-    console.error('💀 NO API KEYS CONFIGURED');
-    return res.status(500).json({ 
-      error: ERROR_CODES.NO_KEYS.msg, 
-      code: ERROR_CODES.NO_KEYS.code 
-    });
+  console.log(`🔑 Keys: Gemini=${geminiKeys.length}, OpenAI=${openaiKey ? 'yes' : 'no'}`);
+
+  if (geminiKeys.length === 0 && !openaiKey) {
+    return res.status(500).json({ error: ERROR_CODES.NO_KEYS.msg, code: 'NO_KEYS' });
   }
 
   const { messages } = req.body;
+  let geminiError = null;
 
-  try {
-    console.log(`🔄 Sending request to OpenAI (gpt-4o-mini)...`);
-    const result = await callOpenAI(messages, openaiKey);
-    const duration = Date.now() - startTime;
-    console.log(`✅ OpenAI success in ${duration}ms`);
-    return res.status(200).json(result);
-  } catch (err) {
-    const duration = Date.now() - startTime;
-    console.error(`❌ OpenAI failed after ${duration}ms: ${err.message}`);
-    
-    return res.status(502).json({
-      error: ERROR_CODES.API_ERROR.msg,
-      code: err.code || 'API_ERROR',
-      detail: err.detail || err.message,
-      duration: `${duration}ms`
-    });
+  // ── STEP 1: Try Gemini (FREE) ──
+  if (geminiKeys.length > 0) {
+    try {
+      const result = await callGemini(messages, geminiKeys);
+      const dur = Date.now() - startTime;
+      console.log(`✅ Gemini OK in ${dur}ms (FREE, $0 spent)`);
+      return res.status(200).json(result);
+    } catch (err) {
+      geminiError = err;
+      console.warn(`⚠️ Gemini cascade failed: [${err.geminiCode}] ${err.message?.slice(0, 200)}`);
+    }
   }
+
+  // ── STEP 2: Fallback to OpenAI (PAID, budget-guarded) ──
+  if (openaiKey) {
+    // Check daily budget
+    if (!canUseOpenAI()) {
+      console.warn(`💰 OpenAI daily budget exhausted (${openaiUsage.count}/${OPENAI_DAILY_MAX})`);
+      return res.status(429).json({
+        error: ERROR_CODES.OPENAI_BUDGET.msg,
+        code: 'OPENAI_BUDGET',
+        detail: `Використано ${openaiUsage.count}/${OPENAI_DAILY_MAX} платних запитів сьогодні`
+      });
+    }
+
+    try {
+      console.log(`🔄 Falling back to OpenAI (paid)...`);
+      trackOpenAIUsage();
+      const result = await callOpenAI(messages, openaiKey);
+      const dur = Date.now() - startTime;
+      console.log(`✅ OpenAI OK in ${dur}ms (paid fallback, usage: ${openaiUsage.count}/${OPENAI_DAILY_MAX})`);
+      return res.status(200).json(result);
+    } catch (err) {
+      const dur = Date.now() - startTime;
+      console.error(`❌ OpenAI also failed after ${dur}ms: ${err.message}`);
+      return res.status(503).json({
+        error: `${ERROR_CODES.ALL_FAILED.msg}\n\n📊 Gemini: ${geminiError?.message?.slice(0, 100) || '—'}\n📊 OpenAI: ${err.message?.slice(0, 100)}`,
+        code: 'ALL_FAILED',
+        duration: `${dur}ms`
+      });
+    }
+  }
+
+  // No OpenAI key configured — return Gemini error
+  const dur = Date.now() - startTime;
+  return res.status(503).json({
+    error: `${geminiError?.message || ERROR_CODES.ALL_FAILED.msg}`,
+    code: geminiError?.geminiCode || 'ALL_FAILED',
+    duration: `${dur}ms`,
+    keys_tried: geminiKeys.length,
+    has_openai: false
+  });
 }
