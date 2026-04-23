@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="uk">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Bless Academy — Дізнайся, чому клієнти не записуються з Instagram</title>
-  <meta name="description" content="Безкоштовний AI-аудит профілю за 30 секунд. Дізнайся, що виправити, щоб Instagram приводив клієнтів щодня." />
+  <meta name="description"
+    content="Безкоштовний AI-аудит профілю за 30 секунд. Дізнайся, що виправити, щоб Instagram приводив клієнтів щодня." />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Bless Academy — Дізнайся, чому Instagram не приводить клієнтів" />
-  <meta property="og:description" content="Безкоштовний AI-аудит твого профілю за 30 сек. Отримай конкретні кроки для залучення клієнтів." />
+  <meta property="og:description"
+    content="Безкоштовний AI-аудит твого профілю за 30 сек. Отримай конкретні кроки для залучення клієнтів." />
   <meta property="og:image" content="/og-image.png" />
   <meta property="og:locale" content="uk_UA" />
 
@@ -32,24 +35,28 @@
 
   <!-- Facebook Pixel -->
   <script>
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
+    !function (f, b, e, v, n, t, s) {
+      if (f.fbq) return; n = f.fbq = function () {
+        n.callMethod ?
+        n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+      };
+      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+      n.queue = []; t = b.createElement(e); t.async = !0;
+      t.src = v; s = b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t, s)
+    }(window, document, 'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', '1006602698050276');
     fbq('track', 'PageView');
   </script>
-  <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1006602698050276&ev=PageView&noscript=1"/></noscript>
+  <noscript><img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=1006602698050276&ev=PageView&noscript=1" /></noscript>
 
   <!-- Google Analytics 4 — замінити G-F0RPGF106Q на свій ID -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-F0RPGF106Q"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
     gtag('config', 'G-F0RPGF106Q');
   </script>
@@ -59,7 +66,7 @@
     window.BA = window.BA || {};
 
     // Unified tracker — fires to GA4 + FB Pixel + dataLayer
-    BA.track = function(eventName, params) {
+    BA.track = function (eventName, params) {
       params = params || {};
       params.timestamp = new Date().toISOString();
       params.page_url = location.href;
@@ -69,7 +76,7 @@
 
       // FB Pixel custom
       if (typeof fbq === 'function') {
-        if (['Lead','Purchase','CompleteRegistration','ViewContent','InitiateCheckout'].includes(eventName)) {
+        if (['Lead', 'Purchase', 'CompleteRegistration', 'ViewContent', 'InitiateCheckout'].includes(eventName)) {
           fbq('track', eventName, params);
         } else {
           fbq('trackCustom', eventName, params);
@@ -81,7 +88,7 @@
     };
 
     // ─── Scroll depth tracking ───
-    (function() {
+    (function () {
       var milestones = [25, 50, 75, 90, 100];
       var fired = {};
       function getScrollPercent() {
@@ -92,10 +99,10 @@
         return sh > 0 ? Math.round((st / sh) * 100) : 0;
       }
       var ticking = false;
-      window.addEventListener('scroll', function() {
+      window.addEventListener('scroll', function () {
         if (!ticking) {
           ticking = true;
-          requestAnimationFrame(function() {
+          requestAnimationFrame(function () {
             var pct = getScrollPercent();
             for (var i = 0; i < milestones.length; i++) {
               if (pct >= milestones[i] && !fired[milestones[i]]) {
@@ -110,11 +117,11 @@
     })();
 
     // ─── Time on page tracking ───
-    (function() {
+    (function () {
       var entry = Date.now();
       var intervals = [15, 30, 60, 120, 300]; // seconds
       var idx = 0;
-      var timer = setInterval(function() {
+      var timer = setInterval(function () {
         if (idx >= intervals.length) { clearInterval(timer); return; }
         var elapsed = (Date.now() - entry) / 1000;
         if (elapsed >= intervals[idx]) {
@@ -124,7 +131,7 @@
       }, 5000);
 
       // Track total on exit
-      window.addEventListener('beforeunload', function() {
+      window.addEventListener('beforeunload', function () {
         var total = Math.round((Date.now() - entry) / 1000);
         if (navigator.sendBeacon) {
           // Can't send to GA/FB via beacon easily, but log to dataLayer
@@ -134,9 +141,9 @@
     })();
 
     // ─── Visibility change tracking ───
-    (function() {
+    (function () {
       var hiddenAt = null;
-      document.addEventListener('visibilitychange', function() {
+      document.addEventListener('visibilitychange', function () {
         if (document.hidden) {
           hiddenAt = Date.now();
         } else if (hiddenAt) {
@@ -206,14 +213,22 @@
             Яка твоя спеціалізація?
           </p>
           <div class="q-grid q-grid--2" id="q0-options">
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="манікюр" /><span class="radio-card__text">💅 Манікюр</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="брови/вії" /><span class="radio-card__text">👁 Брови / вії</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="перукар" /><span class="radio-card__text">💇 Перукар</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="косметолог" /><span class="radio-card__text">✨ Косметолог</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="візажист" /><span class="radio-card__text">💄 Візажист</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="масажист" /><span class="radio-card__text">💆 Масажист</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="модифікація волосся" /><span class="radio-card__text">💇‍♀️ Волосся</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0" value="інше" /><span class="radio-card__text">🔹 Інша сфера</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0"
+                value="манікюр" /><span class="radio-card__text">💅 Манікюр</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0"
+                value="брови/вії" /><span class="radio-card__text">👁 Брови / вії</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0"
+                value="перукар" /><span class="radio-card__text">💇 Перукар</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0"
+                value="косметолог" /><span class="radio-card__text">✨ Косметолог</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0"
+                value="візажист" /><span class="radio-card__text">💄 Візажист</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0"
+                value="масажист" /><span class="radio-card__text">💆 Масажист</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0"
+                value="модифікація волосся" /><span class="radio-card__text">💇‍♀️ Волосся</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q0"
+                value="інше" /><span class="radio-card__text">🔹 Інша сфера</span></label>
           </div>
         </div>
 
@@ -224,10 +239,14 @@
             Чого ти найбільше хочеш від Instagram?
           </p>
           <div class="q-grid q-grid--2" id="q1-options">
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1" value="більше клієнтів" /><span class="radio-card__text">📲 Записи з Instagram</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1" value="особистий бренд" /><span class="radio-card__text">💎 Сильний бренд</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1" value="продаж курсів" /><span class="radio-card__text">🎓 Продаж навчання</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1" value="інше" /><span class="radio-card__text">🔹 Інше</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1"
+                value="більше клієнтів" /><span class="radio-card__text">📲 Записи з Instagram</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1"
+                value="особистий бренд" /><span class="radio-card__text">💎 Сильний бренд</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1"
+                value="продаж курсів" /><span class="radio-card__text">🎓 Продаж навчання</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q1"
+                value="інше" /><span class="radio-card__text">🔹 Інше</span></label>
           </div>
         </div>
 
@@ -238,10 +257,14 @@
             Скільки у тебе підписників?
           </p>
           <div class="q-grid q-grid--4" id="q2-options">
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2" value="до 1000" /><span class="radio-card__text">до 1K</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2" value="1000–5000" /><span class="radio-card__text">1–5K</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2" value="5000–20000" /><span class="radio-card__text">5–20K</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2" value="20000+" /><span class="radio-card__text">20K+</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2"
+                value="до 1000" /><span class="radio-card__text">до 1K</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2"
+                value="1000–5000" /><span class="radio-card__text">1–5K</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2"
+                value="5000–20000" /><span class="radio-card__text">5–20K</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q2"
+                value="20000+" /><span class="radio-card__text">20K+</span></label>
           </div>
         </div>
 
@@ -252,9 +275,12 @@
             Як часто ти публікуєш контент?
           </p>
           <div class="q-grid q-grid--3" id="q3-options">
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q3" value="щодня" /><span class="radio-card__text">Щодня</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q3" value="3–4 рази на тиждень" /><span class="radio-card__text">3–4 / тиждень</span></label>
-            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q3" value="рідше" /><span class="radio-card__text">Рідше</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q3"
+                value="щодня" /><span class="radio-card__text">Щодня</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q3"
+                value="3–4 рази на тиждень" /><span class="radio-card__text">3–4 / тиждень</span></label>
+            <label class="radio-card"><span class="radio-card__dot"></span><input type="radio" name="q3"
+                value="рідше" /><span class="radio-card__text">Рідше</span></label>
           </div>
         </div>
 
@@ -265,13 +291,9 @@
             Що зараз не дає тобі рости?
             <span class="q-block__optional">(необов'язково)</span>
           </p>
-          <textarea
-            id="q4-text"
-            name="q4"
-            rows="3"
+          <textarea id="q4-text" name="q4" rows="3"
             placeholder="Наприклад: знімаю Reels, але нуль записів; не знаю що постити; клієнти не пишуть у Direct..."
-            class="textarea"
-          ></textarea>
+            class="textarea"></textarea>
         </div>
 
         <!-- Next button -->
@@ -307,13 +329,18 @@
       <div id="panel-screenshot" class="tab-panel">
         <div class="tip-banner">
           <span class="tip-banner__icon">🎯</span>
-          <p class="tip-banner__text">Для <strong>найкращого результату</strong> ми рекомендуємо використовувати скріншот — так AI зможе оцінити візуальний стиль профілю.</p>
+          <p class="tip-banner__text">Для <strong>найкращого результату</strong> ми рекомендуємо використовувати
+            скріншот — так AI зможе оцінити візуальний стиль профілю.</p>
         </div>
-        <p class="tab-panel__hint">Зроби скріншот своєї сторінки (щоб було видно шапку та перші пости) та завантаж сюди</p>
+        <p class="tab-panel__hint">Зроби скріншот своєї сторінки (щоб було видно шапку та перші пости) та завантаж сюди
+        </p>
         <div id="upload-zone" class="upload-zone">
           <div id="upload-placeholder" class="upload-zone__placeholder">
             <div class="upload-zone__icon">
-              <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" /></svg>
+              <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" />
+              </svg>
             </div>
             <p class="upload-zone__text">Натисни або перетягни файл сюди</p>
             <p class="upload-zone__meta">PNG, JPG — до 10 МБ</p>
@@ -331,7 +358,10 @@
         <div class="username-card">
           <div class="username-card__header">
             <div class="username-card__icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+              </svg>
             </div>
             <div class="username-card__input-wrap">
               <label for="ig-username" class="username-card__label">Instagram нік або посилання</label>
@@ -352,7 +382,8 @@
               <span class="screenshot-rec__label">Порада</span>
             </div>
             <p class="screenshot-rec__text">
-              Для <strong>найкращого результату</strong> використовуй скріншот — AI зможе оцінити візуальний стиль, якість фото та привабливість твого профілю
+              Для <strong>найкращого результату</strong> використовуй скріншот — AI зможе оцінити візуальний стиль,
+              якість фото та привабливість твого профілю
             </p>
             <button type="button" id="btn-switch-screenshot" class="screenshot-rec__btn">
               📸 Перейти до скріншоту
@@ -365,7 +396,10 @@
       <div id="error-message" class="error-toast hidden">
         <p id="error-text">Помилка: спробуй ще раз</p>
         <button type="button" id="btn-retry" class="error-toast__retry">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
           Спробувати ще раз
         </button>
       </div>
@@ -440,8 +474,8 @@
             Хочеш, щоб клієнти <span class="text-gradient">самі писали</span> тобі в Direct?
           </h3>
           <p class="cta-premium__text">
-            AI показав базові помилки. Але є речі, які бачить лише <strong>досвідчений маркетолог</strong>: 
-            чому твої Reels не конвертують, що змінити в шапці профілю, 
+            AI показав базові помилки. Але є речі, які бачить лише <strong>досвідчений маркетолог</strong>:
+            чому твої Reels не конвертують, що змінити в шапці профілю,
             і який контент <strong>реально приводить записи</strong>, а не просто лайки.
           </p>
 
@@ -465,9 +499,14 @@
 
         <div class="contact-grid">
           <!-- 1. Telegram — Primary -->
-          <a href="https://t.me/help_team_Vrabii" target="_blank" class="contact-card contact-card--telegram" id="cta-message">
+          <a href="https://t.me/help_team_Vrabii" target="_blank" class="contact-card contact-card--telegram"
+            id="cta-message">
             <div class="contact-card__icon-wrap contact-card__icon-wrap--tg">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" fill="currentColor"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"
+                  fill="currentColor" />
+              </svg>
             </div>
             <h4 class="contact-card__title">Написати в Telegram</h4>
             <p class="contact-card__desc">Відповідь за 5 хвилин — напиши «Хочу розбір»</p>
@@ -475,9 +514,14 @@
           </a>
 
           <!-- 2. Instagram DM -->
-          <a href="https://www.instagram.com/bless.academy_/" target="_blank" class="contact-card contact-card--instagram" id="cta-instagram">
+          <a href="https://www.instagram.com/bless.academy_/" target="_blank"
+            class="contact-card contact-card--instagram" id="cta-instagram">
             <div class="contact-card__icon-wrap contact-card__icon-wrap--ig">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" fill="currentColor"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"
+                  fill="currentColor" />
+              </svg>
             </div>
             <h4 class="contact-card__title">Написати в Instagram</h4>
             <p class="contact-card__desc">Напиши «Аналіз» — отримаєш відповідь в Direct</p>
@@ -486,7 +530,11 @@
           <!-- 3. Call -->
           <a href="tel:+380931188028" class="contact-card contact-card--phone" id="cta-call">
             <div class="contact-card__icon-wrap contact-card__icon-wrap--phone">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" fill="currentColor"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"
+                  fill="currentColor" />
+              </svg>
             </div>
             <h4 class="contact-card__title">Зателефонувати</h4>
             <p class="contact-card__desc">Розкажемо все за 3 хвилини</p>
@@ -495,7 +543,11 @@
           <!-- 4. Schedule callback -->
           <button type="button" class="contact-card contact-card--callback" id="cta-callback">
             <div class="contact-card__icon-wrap contact-card__icon-wrap--cal">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 002 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z" fill="currentColor"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 002 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"
+                  fill="currentColor" />
+              </svg>
             </div>
             <h4 class="contact-card__title">Ми зателефонуємо тобі</h4>
             <p class="contact-card__desc">Обери час — ніяких очікувань на лінії</p>
@@ -553,4 +605,5 @@
 
   <script src="/app.js"></script>
 </body>
+
 </html>

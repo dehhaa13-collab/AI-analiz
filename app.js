@@ -442,10 +442,28 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
 
   // ── Loading stages animation ──
   let loadingTimers = [];
+  let progressInterval = null;
   function startLoadingStages() {
     // Clear previous timers
     loadingTimers.forEach(t => clearTimeout(t));
     loadingTimers = [];
+    if (progressInterval) clearInterval(progressInterval);
+
+    const progressBar = document.getElementById('loading-progress-glow');
+    const progressText = document.getElementById('loading-progress-percent');
+    if (progressBar) progressBar.style.width = '0%';
+    if (progressText) progressText.textContent = '0%';
+
+    let currentProgress = 0;
+    // Animate up to 96% over ~15 seconds (150ms per 1%)
+    progressInterval = setInterval(() => {
+      if (currentProgress < 96) {
+        currentProgress += 1;
+        if (progressBar) progressBar.style.width = `${currentProgress}%`;
+        if (progressText) progressText.textContent = `${currentProgress}%`;
+      }
+    }, 150);
+
     const stages = document.querySelectorAll('.loading-stage');
     stages.forEach(s => { s.classList.remove('visible', 'active', 'done'); });
 
@@ -461,6 +479,16 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       }, delay);
       loadingTimers.push(t);
     });
+  }
+
+  function finishLoadingStages() {
+    if (progressInterval) clearInterval(progressInterval);
+    const progressBar = document.getElementById('loading-progress-glow');
+    const progressText = document.getElementById('loading-progress-percent');
+    if (progressBar) progressBar.style.width = '100%';
+    if (progressText) progressText.textContent = '100%';
+    
+    return new Promise(resolve => setTimeout(resolve, 300));
   }
 
   // ── Run analysis ──
@@ -495,6 +523,7 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       }
 
       state.aiResult = await apiAnalyze();
+      await finishLoadingStages();
       renderResults(state.aiResult);
       showScreen('screen-results');
       if (window.BA) BA.track('analysis_completed', {
@@ -511,6 +540,7 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
         value: state.aiResult.score
       });
     } catch (err) {
+      if (progressInterval) clearInterval(progressInterval);
       showScreen('screen-upload');
       showError(err.message || 'Щось пішло не так', err.debugInfo || null);
       if (window.BA) BA.track('analysis_error', { error: err.message || 'unknown', code: err.debugInfo?.code || 'unknown', input_mode: state.inputMode });
