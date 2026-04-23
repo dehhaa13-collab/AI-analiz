@@ -71,23 +71,26 @@ async function callGeminiWithModel(model, messages, apiKey) {
   return { choices: [{ message: { content: text } }] };
 }
 
-async function callGemini(messages, apiKey) {
-  // Try each model with up to 2 attempts each
-  for (const model of GEMINI_MODELS) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        console.log(`Trying ${model} (attempt ${attempt + 1})...`);
-        return await callGeminiWithModel(model, messages, apiKey);
-      } catch (err) {
-        console.warn(`${model} attempt ${attempt + 1} failed:`, err.message);
-        // If quota exceeded, skip to next model immediately
-        if (err.message.includes('quota') || err.message.includes('Quota')) break;
-        // If overloaded, wait and retry
-        if (attempt === 0 && err.message.includes('high demand')) {
-          await delay(3000);
-          continue;
+async function callGemini(messages, apiKeys) {
+  const keys = Array.isArray(apiKeys) ? apiKeys : [apiKeys];
+  // Try each key × each model
+  for (const key of keys) {
+    for (const model of GEMINI_MODELS) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          console.log(`Trying ${model} key=${key.slice(-6)} (attempt ${attempt + 1})...`);
+          return await callGeminiWithModel(model, messages, key);
+        } catch (err) {
+          console.warn(`${model} key=${key.slice(-6)} attempt ${attempt + 1} failed:`, err.message);
+          // If quota exceeded, skip to next key immediately
+          if (err.message.includes('quota') || err.message.includes('Quota')) { break; }
+          // If overloaded, wait and retry once
+          if (attempt === 0 && err.message.includes('high demand')) {
+            await delay(3000);
+            continue;
+          }
+          break;
         }
-        break;
       }
     }
   }
@@ -132,23 +135,28 @@ export default async function handler(req, res) {
   const vError = validate(req.body);
   if (vError) return res.status(400).json({ error: vError });
 
-  const geminiKey = process.env.GEMINI_API_KEY;
+  // Collect all available Gemini keys (rotation across accounts)
+  const geminiKeys = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GEMINI_API_KEY_3
+  ].filter(Boolean);
   const groqKey = process.env.GROQ_API_KEY;
 
-  if (!geminiKey && !groqKey) return res.status(500).json({ error: 'API ключі не налаштовані' });
+  if (geminiKeys.length === 0 && !groqKey) return res.status(500).json({ error: 'API ключі не налаштовані' });
 
   const { messages } = req.body;
 
   // Try Gemini first, fallback to Groq
   let lastError = 'AI сервіси тимчасово недоступні';
 
-  if (geminiKey) {
+  if (geminiKeys.length > 0) {
     try {
-      const result = await callGemini(messages, geminiKey);
+      const result = await callGemini(messages, geminiKeys);
       return res.status(200).json(result);
     } catch (err) {
-      console.warn('Gemini failed:', err.message);
-      lastError = `Gemini: ${err.message}`;
+      console.warn('All Gemini keys failed:', err.message);
+      lastError = err.message;
     }
   }
 

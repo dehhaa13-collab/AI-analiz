@@ -329,8 +329,8 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       const imageLabel = state.imageBase64
         ? '\n\nОсь скріншот профілю для аналізу:'
         : (pd?._screenshotType === 'profile_pic_only'
-            ? '\n\nОсь аватарка профілю — оціни її якість та привабливість:'
-            : '\n\nОсь скріншот сторінки профілю — оціни візуальну складову:');
+          ? '\n\nОсь аватарка профілю — оціни її якість та привабливість:'
+          : '\n\nОсь скріншот сторінки профілю — оціни візуальну складову:');
       messages.push({
         role: 'user',
         content: [
@@ -384,15 +384,17 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       .trim();
 
     // Strategy 1: content is already valid JSON
-    try { return JSON.parse(content); } catch (_) {}
+    try { return JSON.parse(content); } catch (_) { }
 
     // Strategy 2: find outermost { ... }
     let depth = 0, start = -1;
     for (let i = 0; i < content.length; i++) {
       if (content[i] === '{') { if (depth === 0) start = i; depth++; }
-      else if (content[i] === '}') { depth--; if (depth === 0 && start !== -1) {
-        try { return JSON.parse(content.substring(start, i + 1)); } catch (_) { start = -1; }
-      }}
+      else if (content[i] === '}') {
+        depth--; if (depth === 0 && start !== -1) {
+          try { return JSON.parse(content.substring(start, i + 1)); } catch (_) { start = -1; }
+        }
+      }
     }
 
     // Strategy 3: fix common JSON issues and retry parse
@@ -403,7 +405,7 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
         .replace(/,\s*]/g, ']')           // trailing commas in arrays
         .replace(/'/g, '"')               // single to double quotes
         .replace(/(\w+)\s*:/g, '"$1":');  // unquoted keys
-      try { return JSON.parse(fixed); } catch (_) {}
+      try { return JSON.parse(fixed); } catch (_) { }
     }
 
     // Auto-retry once
@@ -691,7 +693,7 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
         const q = JSON.parse(localStorage.getItem('ba_lead_queue') || '[]');
         q.push({ ...payload, ts: new Date().toISOString() });
         localStorage.setItem('ba_lead_queue', JSON.stringify(q));
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // Always show success
