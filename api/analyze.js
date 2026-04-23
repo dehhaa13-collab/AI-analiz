@@ -73,6 +73,7 @@ async function callGeminiWithModel(model, messages, apiKey) {
 
 async function callGemini(messages, apiKeys) {
   const keys = Array.isArray(apiKeys) ? apiKeys : [apiKeys];
+  let lastErrorMsg = '';
   // Try each key × each model
   for (const key of keys) {
     for (const model of GEMINI_MODELS) {
@@ -82,6 +83,7 @@ async function callGemini(messages, apiKeys) {
           return await callGeminiWithModel(model, messages, key);
         } catch (err) {
           console.warn(`${model} key=${key.slice(-6)} attempt ${attempt + 1} failed:`, err.message);
+          lastErrorMsg = err.message;
           // If quota exceeded, skip to next key immediately
           if (err.message.includes('quota') || err.message.includes('Quota')) { break; }
           // If overloaded, wait and retry once
@@ -94,7 +96,7 @@ async function callGemini(messages, apiKeys) {
       }
     }
   }
-  throw new Error('Всі моделі Gemini недоступні. Спробуйте через хвилину.');
+  throw new Error(`Всі моделі Gemini недоступні. Останная помилка: ${lastErrorMsg}`);
 }
 
 async function callGroq(messages, apiKey) {
