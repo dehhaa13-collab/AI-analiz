@@ -207,8 +207,21 @@
   }
 
   // ── Error handling ──
-  function showError(msg) {
+  function showError(msg, debugInfo) {
+    // Show main error message
     els.errorText.textContent = msg;
+    
+    // Add debug code if available (small, gray)
+    const existingDebug = els.errorMessage.querySelector('.error-debug');
+    if (existingDebug) existingDebug.remove();
+    if (debugInfo) {
+      const debug = document.createElement('div');
+      debug.className = 'error-debug';
+      debug.style.cssText = 'font-size:11px;color:#999;margin-top:4px;word-break:break-all;';
+      debug.textContent = `[${debugInfo.code || '?'}] ${debugInfo.detail || ''}`;
+      els.errorText.after(debug);
+    }
+    
     els.errorMessage.classList.remove('hidden');
     // Remove switch-to-screenshot button if exists
     const existingSwitch = els.errorMessage.querySelector('.error-toast__switch');
@@ -360,8 +373,10 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       body: JSON.stringify({ messages })
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `Помилка сервера: ${res.status}`);
+      const errBody = await res.json().catch(() => ({}));
+      const err = new Error(errBody.error || `Помилка сервера: ${res.status}`);
+      err.debugInfo = { code: errBody.code || res.status, detail: `keys=${errBody.keys_tried || '?'}, groq=${errBody.has_groq || '?'}, ${errBody.duration || ''}` };
+      throw err;
     }
     const data = await res.json();
 
@@ -464,8 +479,8 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       });
     } catch (err) {
       showScreen('screen-upload');
-      showError(err.message || 'Щось пішло не так');
-      if (window.BA) BA.track('analysis_error', { error: err.message || 'unknown', input_mode: state.inputMode });
+      showError(err.message || 'Щось пішло не так', err.debugInfo || null);
+      if (window.BA) BA.track('analysis_error', { error: err.message || 'unknown', code: err.debugInfo?.code || 'unknown', input_mode: state.inputMode });
     }
   }
 
