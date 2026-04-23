@@ -725,6 +725,21 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
     els.btnAnalyze.addEventListener('click', runAnalysis);
     els.btnRetry.addEventListener('click', () => { hideError(); runAnalysis(); });
 
+    // "Switch to screenshot" recommendation button on username panel
+    const btnSwitchScreenshot = $('#btn-switch-screenshot');
+    if (btnSwitchScreenshot) {
+      btnSwitchScreenshot.addEventListener('click', () => {
+        $$('.tabs__btn').forEach(b => b.classList.remove('active'));
+        const screenshotTab = $('.tabs__btn[data-tab="screenshot"]');
+        if (screenshotTab) screenshotTab.classList.add('active');
+        state.inputMode = 'screenshot';
+        $('#panel-screenshot').classList.remove('hidden');
+        $('#panel-username').classList.add('hidden');
+        checkUploadValid();
+        if (window.BA) BA.track('switch_to_screenshot', { from: 'recommendation' });
+      });
+    }
+
     // CTA clicks tracking
     els.ctaCallback.addEventListener('click', openModal);
     const ctaCall = $('#cta-call');

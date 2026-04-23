@@ -294,12 +294,19 @@
 
       <!-- Tabs -->
       <div class="tabs" id="input-tabs">
-        <button type="button" class="tabs__btn active" data-tab="screenshot">📸 Скріншот</button>
+        <button type="button" class="tabs__btn active" data-tab="screenshot">
+          📸 Скріншот
+          <span class="tabs__badge">★ Найкращий результат</span>
+        </button>
         <button type="button" class="tabs__btn" data-tab="username">🔗 Нік / посилання</button>
       </div>
 
       <!-- Tab: Screenshot -->
       <div id="panel-screenshot" class="tab-panel">
+        <div class="tip-banner">
+          <span class="tip-banner__icon">🎯</span>
+          <p class="tip-banner__text">Скріншот дає <strong>найточніший аналіз</strong> — AI бачить твою аватарку, сітку постів, стиль фото та кольори</p>
+        </div>
         <p class="tab-panel__hint">Зроби скріншот головної сторінки профілю (шапка + 6–9 постів)</p>
         <div id="upload-zone" class="upload-zone">
           <div id="upload-placeholder" class="upload-zone__placeholder">
@@ -330,8 +337,24 @@
             </div>
           </div>
           <div class="username-card__hints">
-            <p>✦ AI отримає дані профілю та дасть детальний аналіз</p>
-            <p>✦ Для кращого аналізу — використовуй скріншот</p>
+            <p>✦ AI знайде твій профіль та проаналізує дані</p>
+          </div>
+        </div>
+
+        <!-- Recommendation to use screenshot -->
+        <div class="screenshot-rec">
+          <div class="screenshot-rec__glow"></div>
+          <div class="screenshot-rec__content">
+            <div class="screenshot-rec__header">
+              <span class="screenshot-rec__star">💡</span>
+              <span class="screenshot-rec__label">Порада</span>
+            </div>
+            <p class="screenshot-rec__text">
+              Для <strong>найкращого результату</strong> використовуй скріншот — AI зможе оцінити візуальний стиль, якість фото та привабливість твого профілю
+            </p>
+            <button type="button" id="btn-switch-screenshot" class="screenshot-rec__btn">
+              📸 Перейти до скріншоту
+            </button>
           </div>
         </div>
       </div>
