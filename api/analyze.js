@@ -114,12 +114,15 @@ export default async function handler(req, res) {
   const { messages } = req.body;
 
   // Try Gemini first, fallback to Groq
+  let lastError = 'AI сервіси тимчасово недоступні';
+
   if (geminiKey) {
     try {
       const result = await callGemini(messages, geminiKey);
       return res.status(200).json(result);
     } catch (err) {
       console.warn('Gemini failed:', err.message);
+      lastError = `Gemini: ${err.message}`;
     }
   }
 
@@ -129,9 +132,9 @@ export default async function handler(req, res) {
       return res.status(200).json(result);
     } catch (err) {
       console.error('Groq failed:', err.message);
-      return res.status(503).json({ error: 'AI сервіси тимчасово недоступні' });
+      lastError = `Groq: ${err.message}`;
     }
   }
 
-  return res.status(503).json({ error: 'AI сервіси тимчасово недоступні' });
+  return res.status(503).json({ error: lastError });
 }
