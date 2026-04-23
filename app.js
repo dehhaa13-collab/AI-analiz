@@ -431,6 +431,29 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
     throw new Error('AI повернув некоректний формат. Спробуй ще раз');
   }
 
+  // ── Loading stages animation ──
+  let loadingTimers = [];
+  function startLoadingStages() {
+    // Clear previous timers
+    loadingTimers.forEach(t => clearTimeout(t));
+    loadingTimers = [];
+    const stages = document.querySelectorAll('.loading-stage');
+    stages.forEach(s => { s.classList.remove('visible', 'active', 'done'); });
+
+    stages.forEach((stage, i) => {
+      const delay = parseInt(stage.dataset.delay) || 0;
+      const t = setTimeout(() => {
+        // Mark previous stages as done
+        for (let j = 0; j < i; j++) {
+          stages[j].classList.remove('active');
+          stages[j].classList.add('done');
+        }
+        stage.classList.add('visible', 'active');
+      }, delay);
+      loadingTimers.push(t);
+    });
+  }
+
   // ── Run analysis ──
   async function runAnalysis() {
     hideError();
@@ -442,6 +465,7 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
     }
 
     showScreen('screen-loading');
+    startLoadingStages();
     if (window.BA) BA.track('analysis_started', { input_mode: state.inputMode, niche: state.answers.q0 || '' });
 
     try {
