@@ -23,7 +23,11 @@ function validate(body) {
   return null;
 }
 
-async function callGemini(messages, apiKey) {
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash-lite'];
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function callGeminiWithModel(model, messages, apiKey) {
   // Convert messages to Gemini format
   const contents = [];
   const systemInstruction = messages.find(m => m.role === 'system');
@@ -52,7 +56,7 @@ async function callGemini(messages, apiKey) {
     payload.system_instruction = { parts: [{ text: systemInstruction.content }] };
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -64,8 +68,30 @@ async function callGemini(messages, apiKey) {
   }
   const data = await res.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  // Return in OpenAI-compatible format for client
   return { choices: [{ message: { content: text } }] };
+}
+
+async function callGemini(messages, apiKey) {
+  // Try each model with up to 2 attempts each
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        console.log(`Trying ${model} (attempt ${attempt + 1})...`);
+        return await callGeminiWithModel(model, messages, apiKey);
+      } catch (err) {
+        console.warn(`${model} attempt ${attempt + 1} failed:`, err.message);
+        // If quota exceeded, skip to next model immediately
+        if (err.message.includes('quota') || err.message.includes('Quota')) break;
+        // If overloaded, wait and retry
+        if (attempt === 0 && err.message.includes('high demand')) {
+          await delay(3000);
+          continue;
+        }
+        break;
+      }
+    }
+  }
+  throw new Error('Всі моделі Gemini недоступні. Спробуйте через хвилину.');
 }
 
 async function callGroq(messages, apiKey) {
