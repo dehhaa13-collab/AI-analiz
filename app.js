@@ -13,7 +13,7 @@
     imageBase64: null,
     username: '',
     inputMode: 'screenshot',
-    aiProvider: 'gemini', // 'gemini' (free, default) or 'openai' (paid)
+
     aiResult: null,
     profileData: null,
     profileScreenshot: null,
@@ -230,22 +230,6 @@
     const existingOpenai = els.errorMessage.querySelector('.error-toast__openai');
     if (existingOpenai) existingOpenai.remove();
 
-    // If Gemini failed & user is on free mode — suggest switching to OpenAI
-    const isGeminiFail = debugInfo && ['QUOTA', 'OVERLOADED', 'ALL_FAILED', 'API_ERROR'].includes(debugInfo.code);
-    if (isGeminiFail && state.aiProvider !== 'openai') {
-      const openaiBtn = document.createElement('button');
-      openaiBtn.type = 'button';
-      openaiBtn.className = 'error-toast__retry error-toast__openai';
-      openaiBtn.style.cssText = 'margin-top:8px;background:linear-gradient(135deg,rgba(16,163,127,.15),rgba(16,163,127,.08));border:1px solid rgba(16,163,127,.3);color:#10a37f;';
-      openaiBtn.innerHTML = '🔄 Спробувати через OpenAI (платний)';
-      openaiBtn.addEventListener('click', () => {
-        hideError();
-        state.aiProvider = 'openai';
-        updateProviderToggle();
-        runAnalysis();
-      });
-      els.errorMessage.appendChild(openaiBtn);
-    }
   }
 
   function showProfileError(username) {
@@ -406,10 +390,7 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
     }
 
     const payload = { messages };
-    // Send provider preference to backend
-    if (state.aiProvider === 'openai') {
-      payload.provider = 'openai';
-    }
+
 
     const res = await fetch('/api/analyze', {
       method: 'POST',
@@ -843,30 +824,6 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
     setTimeout(closeModal, 3000);
   }
 
-  // ── AI Provider Toggle ──
-  function initProviderToggle() {
-    const toggle = $('#provider-toggle');
-    if (!toggle) return;
-    toggle.addEventListener('click', () => {
-      state.aiProvider = state.aiProvider === 'gemini' ? 'openai' : 'gemini';
-      updateProviderToggle();
-      if (window.BA) BA.track('provider_switch', { provider: state.aiProvider });
-    });
-    updateProviderToggle();
-  }
-
-  function updateProviderToggle() {
-    const toggle = $('#provider-toggle');
-    const dot = toggle?.querySelector('.provider-toggle__dot');
-    const labelFree = toggle?.querySelector('.provider-toggle__label--free');
-    const labelPaid = toggle?.querySelector('.provider-toggle__label--paid');
-    if (!toggle) return;
-    const isOpenAI = state.aiProvider === 'openai';
-    toggle.classList.toggle('active', isOpenAI);
-    if (dot) dot.style.transform = isOpenAI ? 'translateX(22px)' : 'translateX(0)';
-    if (labelFree) labelFree.classList.toggle('dimmed', isOpenAI);
-    if (labelPaid) labelPaid.classList.toggle('dimmed', !isOpenAI);
-  }
 
   // ── Event bindings ──
   function init() {
@@ -874,7 +831,6 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
     initRadioCards();
     initTabs();
     initUpload();
-    initProviderToggle();
     checkQuizValid();
 
     els.btnNext.addEventListener('click', () => {
