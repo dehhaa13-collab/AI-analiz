@@ -452,7 +452,7 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
     }
 
     const err = new Error('AI повернув некоректний формат. Спробуй ще раз');
-    err.debugInfo = { code: 'PARSE_ERROR', detail: content.slice(0, 150).replace(/\n/g, ' ') };
+    err.debugInfo = { code: 'PARSE_ERROR', detail: `LEN: ${content.length} | END: ${content.slice(-150).replace(/\n/g, ' ')}` };
     throw err;
   }
 
