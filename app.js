@@ -322,38 +322,83 @@
 
     const hasRealData = !!pd && !pd._fallback;
     const hasVisual = !!(state.imageBase64 || state.profileScreenshot);
-    const systemPrompt = `Ти — провідний SMM-стратег з 10+ роками досвіду в б'юті-індустрії. Ти аналізуєш Instagram-сторінки б'юті-майстрів і створюєш конкретні контент-плани.
-${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. Аналізуй їх уважно. Якщо профіль закритий — рекомендуй відкрити. Якщо біо порожнє — запропонуй текст. Оцінку став справедливо: мало підписників/постів = нижчий бал, багато = вищий.' : '\nЗосередься на стратегії та контент-ідеях для ніші.'}
-${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ\'ЯЗКОВО оціни візуальну складову:\n- Наскільки привабливий аватар? Чи виглядає професійно?\n- Як виглядає сітка публікацій? Чи є єдиний стиль?\n- Якість фотографій та відео\n- Кольорова палітра та загальне враження\n- Чи виділяється профіль серед конкурентів?\nВключи свою оцінку візуалу в summary та problems.' : ''}
 
-ВАЖЛИВО: відповідай ТІЛЬКИ валідним JSON, без \`\`\`json тегів, без пояснень.
-ОЦІНКА SCORE: має бути ДИНАМІЧНОЮ від 10 до 99. Оцінюй справедливо!
+    const systemPrompt = `Ти — провідний SMM-стратег з 10+ роками досвіду роботи з б'юті-майстрами в Україні. Ти проводиш глибокий аудит Instagram-профілів і даєш КОНКРЕТНІ, готові до дії рекомендації, які майстер може впровадити самостійно.
 
-Формат відповіді JSON:
+ТВОЯ ЗАДАЧА: провести детальний аналіз і повернути JSON з 10 секціями. Кожна секція повинна нести РЕАЛЬНУ цінність.
+
+${hasRealData ? 'Тобі дано РЕАЛЬНІ дані профілю. Аналізуй їх уважно:\n- Якщо профіль закритий — це критична помилка для бізнесу\n- Якщо біо порожнє або неінформативне — запропонуй повний текст\n- Оцінку став СПРАВЕДЛИВО на основі реальних даних: мало підписників та постів = нижчий бал\n- Аналізуй співвідношення підписників/підписок' : 'Зосередься на стратегії та контент-ідеях для ніші, оскільки реальні дані профілю відсутні.'}
+
+${hasVisual ? 'Тобі дано ЗОБРАЖЕННЯ (скріншот профілю). ОБОВ\'ЯЗКОВО оціни:\n- Аватар: професійність, привабливість, чи видно обличчя\n- Сітка публікацій: єдиний стиль, кольорова гама, чистота\n- Якість фото та відео: світло, композиція\n- Загальне враження: чи хочеться підписатись з першого погляду?\nВ summary та categories.visual ОБОВ\'ЯЗКОВО відобрази свою оцінку візуалу.' : ''}
+
+ФОРМАТ ВІДПОВІДІ — тільки валідний JSON, без жодних пояснень до або після:
+
 {
-  "score": число від 1 до 100,
-  "score_label": "Початковий" | "Середній" | "Зростаючий" | "Професійний",
-  "summary": "2-3 речення загальної оцінки профілю",
+  "score": <число 10–99, справедлива оцінка>,
+  "score_label": "<одне з: Початковий | Зростаючий | Середній | Професійний>",
+
+  "categories": {
+    "visual": <1–10, візуальна якість фото/відео/сітки>,
+    "bio": <1–10, якість шапки профілю: ім'я, опис, CTA, контакти>,
+    "content": <1–10, якість та різноманітність контенту>,
+    "engagement": <1–10, робота з аудиторією: сторіз, відповіді, інтерактив>,
+    "conversion": <1–10, наскільки профіль конвертує відвідувача у клієнта>
+  },
+
+  "summary": "<2–3 речення: головний висновок аудиту. Що добре, що критично. Без води>",
+
+  "quick_wins": [
+    "<Дія 1 яку можна зробити за 5 хвилин прямо зараз>",
+    "<Дія 2 яку можна зробити за 5 хвилин прямо зараз>",
+    "<Дія 3 яку можна зробити за 5 хвилин прямо зараз>"
+  ],
+
   "problems": [
-    {"title": "назва проблеми", "description": "опис", "fix": "конкретне рішення"}
+    {"title": "<назва>", "description": "<чому це проблема — 1 речення>", "fix": "<конкретне рішення з прикладом>"},
+    {"title": "<назва>", "description": "<чому це проблема>", "fix": "<конкретне рішення>"},
+    {"title": "<назва>", "description": "<чому це проблема>", "fix": "<конкретне рішення>"}
   ],
+
+  "bio_rewrite": {
+    "current_issues": "<що не так з поточною шапкою: 1–2 речення>",
+    "suggested": "<ПОВНИЙ готовий текст нової шапки профілю, який можна скопіювати. Включи: спеціалізацію, локацію, УТП, CTA. Використовуй емодзі. Максимум 150 символів>"
+  },
+
   "content_plan": [
-    {"day": "Понеділок", "format": "Reels", "idea": "конкретна ідея відео", "hook": "перші 2 секунди - що показати", "caption": "готовий підпис до поста"},
-    {"day": "Середа", "format": "Карусель", "idea": "...", "hook": "...", "caption": "..."},
-    {"day": "П'ятниця", "format": "Сторіз", "idea": "...", "hook": "...", "caption": "..."}
+    {"day": "Понеділок", "format": "Reels", "idea": "<конкретна ідея>", "hook": "<перші 2 сек — що показати/сказати>", "caption": "<готовий текст підпису 2–3 речення>"},
+    {"day": "Середа", "format": "Карусель", "idea": "<конкретна ідея>", "hook": "<перший слайд — що написати>", "caption": "<готовий підпис>"},
+    {"day": "П'ятниця", "format": "Reels", "idea": "<конкретна ідея>", "hook": "<перші 2 сек>", "caption": "<готовий підпис>"},
+    {"day": "Неділя", "format": "Сторіз", "idea": "<серія з 3–5 сторіз>", "hook": "<перша сторіз — чим зачепити>", "caption": "<що написати на кожній>"}
   ],
-  "action_plan": ["крок 1 — що зробити сьогодні", "крок 2 — що зробити цього тижня", "крок 3 — що зробити цього місяця"],
-  "hashtags": ["#хештег1", "#хештег2", ...макс 15],
-  "cta": "мотивуючий текст, чому варто працювати з професіоналом"
+
+  "action_plan": [
+    "<🔥 СЬОГОДНІ: конкретна дія, яку зробити прямо зараз>",
+    "<📅 ЦЕЙ ТИЖДЕНЬ: що впровадити протягом 7 днів>",
+    "<🎯 ЦЕЙ МІСЯЦЬ: стратегічна ціль на 30 днів>"
+  ],
+
+  "niche_comparison": {
+    "avg_score": <число 70–85: середній бал успішних профілів у цій ніші>,
+    "common_mistake": "<найчастіша помилка у ніші '${a.q0}' — 1 речення>"
+  },
+
+  "growth_forecast": "<Якщо виправити всі зазначені проблеми, протягом 30 днів можна очікувати: [конкретний прогноз зростання підписників/записів]. 1–2 речення>",
+
+  "hashtags": ["#хештег1", "#хештег2", "...максимум 15 релевантних для ${a.q0} в Україні"],
+
+  "cta": "<мотивуючий текст 1–2 речення: чому варто працювати з професійним маркетологом>"
 }
 
-Правила:
-- Максимум 3 problems
-- Контент-план на тиждень — 3 конкретні ідеї з HOOK та CAPTION
-- ACTION PLAN — 3 кроки (сьогодні / тиждень / місяць)
-- Хештеги — релевантні для сфери "${a.q0}" в Україні
-- Мова — українська
-- Будь конкретним, без води`;
+КРИТИЧНІ ПРАВИЛА:
+1. Відповідай ТІЛЬКИ JSON. Жодного тексту до або після.
+2. Не використовуй \`\`\`json теги.
+3. Всі тексти — УКРАЇНСЬКОЮ.
+4. quick_wins — ТРИ дії, які реально можна зробити за 5 хвилин (не "вивчіть конкурентів").
+5. bio_rewrite.suggested — повний готовий текст, який можна вставити в профіль.
+6. content_plan — 4 конкретні ідеї з ГОТОВИМИ підписами.
+7. problems — максимум 3, з КОНКРЕТНИМИ рішеннями (не загальні фрази).
+8. Оцінка має бути СПРАВЕДЛИВОЮ: не завищуй і не занижуй.
+9. Будь прямим та конкретним. Жодної води.`;
 
     const messages = [{ role: 'system', content: systemPrompt }];
 
@@ -598,8 +643,9 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
   function renderResults(data) {
     const c = els.resultsContainer;
     c.innerHTML = '';
+    let blockIdx = 0;
 
-    // Score
+    // ═══ 1. Score Ring ═══
     const score = Math.max(1, Math.min(100, data.score || 50));
     const circumference = 2 * Math.PI * 54;
     const offset = circumference - (score / 100) * circumference;
@@ -631,17 +677,92 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       animateCounter('score-counter', score, 2500);
     });
 
-    // Summary
+    // ═══ 2. Category Scores ═══
+    if (data.categories) {
+      const cats = data.categories;
+      const catLabels = {
+        visual: { label: 'Візуал', emoji: '📸', color: '#f472b6' },
+        bio: { label: 'Шапка профілю', emoji: '✍️', color: '#a78bfa' },
+        content: { label: 'Контент', emoji: '📝', color: '#60a5fa' },
+        engagement: { label: 'Залучення', emoji: '💬', color: '#fbbf24' },
+        conversion: { label: 'Конверсія в запис', emoji: '🎯', color: '#34d399' }
+      };
+      let html = `<div class="result-block" style="animation-delay:.12s">
+        <div class="r-heading"><div class="r-heading__icon" style="background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(59,130,246,.12))">📊</div>Детальна оцінка</div>
+        <div class="result-card">`;
+      for (const [key, meta] of Object.entries(catLabels)) {
+        const val = cats[key] || 5;
+        const pct = val * 10;
+        html += `<div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:.75rem;color:var(--text-2)">${meta.emoji} ${meta.label}</span>
+            <span style="font-size:.75rem;font-weight:700;color:${meta.color}">${val}/10</span>
+          </div>
+          <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${meta.color};border-radius:3px;transition:width 1s ease .${blockIdx + 3}s"></div>
+          </div>
+        </div>`;
+      }
+      html += '</div></div>';
+      c.innerHTML += html;
+    }
+
+    // ═══ 3. Summary ═══
     if (data.summary) {
-      c.innerHTML += `<div class="result-card result-block" style="animation-delay:.15s">
+      c.innerHTML += `<div class="result-card result-block" style="animation-delay:.2s">
         <p style="font-size:.8125rem;color:#d4d4d8;line-height:1.6">${esc(data.summary)}</p>
       </div>`;
     }
 
-    // Problems
+    // ═══ 4. Niche Comparison ═══
+    if (data.niche_comparison) {
+      const nc = data.niche_comparison;
+      const diff = score - nc.avg_score;
+      const diffText = diff >= 0 ? `вище на ${diff}%` : `нижче на ${Math.abs(diff)}%`;
+      const diffColor = diff >= 0 ? '#4ade80' : '#f87171';
+      c.innerHTML += `<div class="result-block" style="animation-delay:.25s">
+        <div class="result-card" style="border:1px solid rgba(139,92,246,.15)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:1.2rem">🏆</span>
+            <span style="font-size:.75rem;font-weight:700;color:var(--text-2)">Порівняння з нішею</span>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center;margin-bottom:8px">
+            <div style="text-align:center">
+              <div style="font-size:1.5rem;font-weight:800;color:#a78bfa">${nc.avg_score}</div>
+              <div style="font-size:.625rem;color:var(--text-3)">середній бал</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:1.5rem;font-weight:800;color:${diffColor}">${score}</div>
+              <div style="font-size:.625rem;color:var(--text-3)">твій бал</div>
+            </div>
+            <div style="flex:1;font-size:.75rem;color:${diffColor};font-weight:600">${diffText}</div>
+          </div>
+          ${nc.common_mistake ? `<p style="font-size:.7rem;color:var(--text-3);margin:0;border-top:1px solid rgba(255,255,255,.04);padding-top:8px">💡 Типова помилка у ніші: ${esc(nc.common_mistake)}</p>` : ''}
+        </div>
+      </div>`;
+    }
+
+    // ═══ 5. Quick Wins ═══
+    if (data.quick_wins?.length) {
+      let html = `<div class="result-block" style="animation-delay:.3s">
+        <div class="r-heading"><div class="r-heading__icon" style="background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(234,179,8,.12))">⚡</div>Зроби прямо зараз (5 хвилин)</div>
+        <div class="result-card">`;
+      data.quick_wins.forEach((win, i) => {
+        html += `<div style="${i > 0 ? 'margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.04)' : ''}">
+          <div style="display:flex;gap:8px;align-items:flex-start">
+            <span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:rgba(245,158,11,.1);color:#fbbf24;font-size:.7rem;font-weight:800;flex-shrink:0">${i + 1}</span>
+            <p style="font-size:.8125rem;color:var(--text-2);margin:0">${esc(win)}</p>
+          </div>
+        </div>`;
+      });
+      html += '</div></div>';
+      c.innerHTML += html;
+    }
+
+    // ═══ 6. Problems / Growth Zones ═══
     if (data.problems?.length) {
-      let html = `<div class="result-block" style="animation-delay:.25s">
-        <div class="r-heading"><div class="r-heading__icon" style="background:linear-gradient(135deg,rgba(244,114,182,.12),rgba(239,68,68,.12))">⚡</div>Зони росту</div>`;
+      let html = `<div class="result-block" style="animation-delay:.35s">
+        <div class="r-heading"><div class="r-heading__icon" style="background:linear-gradient(135deg,rgba(244,114,182,.12),rgba(239,68,68,.12))">🔍</div>Зони росту</div>`;
       data.problems.forEach((p, i) => {
         html += `<div class="result-card" style="margin-bottom:8px">
           <div style="display:flex;gap:8px;margin-bottom:6px">
@@ -658,7 +779,26 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       c.innerHTML += html;
     }
 
-    // Content Plan
+    // ═══ 7. Bio Rewrite ═══
+    if (data.bio_rewrite?.suggested) {
+      const br = data.bio_rewrite;
+      c.innerHTML += `<div class="result-block" style="animation-delay:.4s">
+        <div class="r-heading"><div class="r-heading__icon" style="background:linear-gradient(135deg,rgba(167,139,250,.12),rgba(139,92,246,.12))">✍️</div>Нова шапка профілю</div>
+        <div class="result-card">
+          ${br.current_issues ? `<p style="font-size:.7rem;color:var(--text-3);margin:0 0 10px">⚠️ ${esc(br.current_issues)}</p>` : ''}
+          <div style="padding:14px;border-radius:12px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15)">
+            <p style="font-size:.8125rem;color:#e2e8f0;margin:0;white-space:pre-wrap;line-height:1.6" id="bio-text">${esc(br.suggested)}</p>
+          </div>
+          <button type="button" class="copy-btn" style="margin-top:10px" id="copy-bio">📋 Скопіювати шапку</button>
+        </div>
+      </div>`;
+      setTimeout(() => {
+        const btn = $('#copy-bio');
+        if (btn) btn.addEventListener('click', () => copyText(data.bio_rewrite.suggested, btn));
+      }, 100);
+    }
+
+    // ═══ 8. Content Plan ═══
     if (data.content_plan?.length) {
       const formatEmoji = { 'Reels': '🎬', 'Карусель': '📸', 'Сторіз': '📱' };
       const formatBg = {
@@ -667,7 +807,7 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       const formatBorder = {
         'Reels': 'rgba(244,114,182,.18)', 'Карусель': 'rgba(59,130,246,.18)', 'Сторіз': 'rgba(245,158,11,.18)'
       };
-      let html = `<div class="result-block" style="animation-delay:.35s">
+      let html = `<div class="result-block" style="animation-delay:.45s">
         <div class="r-heading"><div class="r-heading__icon" style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(16,185,129,.12))">📅</div>Контент-план на тиждень</div>`;
       data.content_plan.forEach((item, i) => {
         const bg = formatBg[item.format] || formatBg['Reels'];
@@ -689,11 +829,11 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       c.innerHTML += html;
     }
 
-    // Action Plan
+    // ═══ 9. Action Plan ═══
     if (data.action_plan?.length) {
       const labels = ['🔥 Сьогодні', '📅 Цей тиждень', '🎯 Цей місяць'];
       const colors = ['#f87171', '#fbbf24', '#4ade80'];
-      let html = `<div class="result-block" style="animation-delay:.45s">
+      let html = `<div class="result-block" style="animation-delay:.5s">
         <div class="r-heading"><div class="r-heading__icon" style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(16,185,129,.12))">✅</div>План дій</div>
         <div class="result-card">`;
       data.action_plan.forEach((step, i) => {
@@ -706,10 +846,23 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       c.innerHTML += html;
     }
 
-    // Hashtags
+    // ═══ 10. Growth Forecast ═══
+    if (data.growth_forecast) {
+      c.innerHTML += `<div class="result-block" style="animation-delay:.55s">
+        <div class="result-card" style="border:1px solid rgba(34,197,94,.15);background:rgba(34,197,94,.04)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:1.2rem">📈</span>
+            <span style="font-size:.75rem;font-weight:700;color:#4ade80">Прогноз росту</span>
+          </div>
+          <p style="font-size:.8125rem;color:var(--text-2);margin:0;line-height:1.6">${esc(data.growth_forecast)}</p>
+        </div>
+      </div>`;
+    }
+
+    // ═══ 11. Hashtags ═══
     if (data.hashtags?.length) {
       const allTags = data.hashtags.join(' ');
-      let html = `<div class="result-block" style="animation-delay:.55s">
+      let html = `<div class="result-block" style="animation-delay:.6s">
         <div class="r-heading"><div class="r-heading__icon" style="background:linear-gradient(135deg,rgba(192,132,252,.12),rgba(139,92,246,.12))">#</div>Хештеги</div>
         <div class="result-card">
           <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">

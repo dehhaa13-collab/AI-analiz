@@ -178,15 +178,41 @@ function cleanAIResponse(result) {
 
 function validateAIStructure(data) {
   if (!data || typeof data !== 'object') return data;
+
+  // Clamp a sub-score to 1–10
+  const clampSub = (v) => Math.max(1, Math.min(10, parseInt(v) || 5));
+
   return {
     score: Math.max(1, Math.min(100, parseInt(data.score) || 50)),
     score_label: data.score_label || 'Середній',
     summary: data.summary || '',
+
+    // ── Category scores (1–10 each) ──
+    categories: data.categories && typeof data.categories === 'object' ? {
+      visual:     clampSub(data.categories.visual),
+      bio:        clampSub(data.categories.bio),
+      content:    clampSub(data.categories.content),
+      engagement: clampSub(data.categories.engagement),
+      conversion: clampSub(data.categories.conversion)
+    } : { visual: 5, bio: 5, content: 5, engagement: 5, conversion: 5 },
+
+    // ── Quick wins (3 things to fix in 5 minutes) ──
+    quick_wins: Array.isArray(data.quick_wins) ? data.quick_wins.slice(0, 3) : [],
+
+    // ── Problems / growth zones ──
     problems: Array.isArray(data.problems) ? data.problems.slice(0, 5).map(p => ({
       title: p.title || '',
       description: p.description || '',
       fix: p.fix || ''
     })) : [],
+
+    // ── Bio rewrite suggestion ──
+    bio_rewrite: data.bio_rewrite && typeof data.bio_rewrite === 'object' ? {
+      current_issues: data.bio_rewrite.current_issues || '',
+      suggested: data.bio_rewrite.suggested || ''
+    } : null,
+
+    // ── Content plan (3–5 ideas) ──
     content_plan: Array.isArray(data.content_plan) ? data.content_plan.map(item => ({
       day: item.day || '',
       format: item.format || '',
@@ -194,8 +220,23 @@ function validateAIStructure(data) {
       hook: item.hook || '',
       caption: item.caption || ''
     })) : [],
-    action_plan: Array.isArray(data.action_plan) ? data.action_plan.slice(0, 5) : [],
+
+    // ── Action plan (today / week / month) ──
+    action_plan: Array.isArray(data.action_plan) ? data.action_plan.slice(0, 3) : [],
+
+    // ── Niche comparison ──
+    niche_comparison: data.niche_comparison && typeof data.niche_comparison === 'object' ? {
+      avg_score: Math.max(1, Math.min(100, parseInt(data.niche_comparison.avg_score) || 75)),
+      common_mistake: data.niche_comparison.common_mistake || ''
+    } : null,
+
+    // ── Growth forecast ──
+    growth_forecast: data.growth_forecast || '',
+
+    // ── Hashtags ──
     hashtags: Array.isArray(data.hashtags) ? data.hashtags.slice(0, 15) : [],
+
+    // ── CTA text ──
     cta: data.cta || ''
   };
 }
