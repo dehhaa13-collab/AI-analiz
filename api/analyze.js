@@ -248,6 +248,7 @@ async function callGeminiWithModel(model, messages, apiKey) {
     throw err;
   }
 
+
   const data = await res.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   if (!text) {
@@ -275,6 +276,13 @@ async function callGemini(messages, apiKeys) {
           console.log(`✅ Gemini ${label} — success`);
           return result;
         } catch (err) {
+          // Handle fetch timeout
+          if (err.name === 'AbortError') {
+            const timeoutErr = { code: 'OVERLOADED', detail: `Gemini ${label}: timeout 50s` };
+            attemptLog.push({ attempt: label, ...timeoutErr });
+            console.warn(`⏱️ Gemini ${label}: timeout 50s`);
+            break;
+          }
           const classified = err.classified || ERROR_CODES.API_ERROR;
           attemptLog.push({ attempt: label, code: classified.code, detail: err.message?.slice(0, 150) });
           console.warn(`❌ Gemini ${label}: [${classified.code}] ${err.message?.slice(0, 150)}`);
@@ -411,12 +419,16 @@ export default async function handler(req, res) {
       console.log(`✅ OpenAI OK in ${dur}ms (fallback, usage: ${openaiUsage.count}/${OPENAI_DAILY_MAX})`);
       return res.status(200).json({ ...cleanAIResponse(result), _provider: 'openai' });
     } catch (err) {
+      const isTimeout = err.name === 'AbortError';
+      const openaiMsg = isTimeout ? 'OpenAI: timeout 50s' : err.message;
       const dur = Date.now() - startTime;
-      console.error(`❌ OpenAI also failed after ${dur}ms: ${err.message}`);
+      console.error(`❌ OpenAI also failed after ${dur}ms: ${openaiMsg}`);
       return res.status(503).json({
-        error: `${ERROR_CODES.ALL_FAILED.msg}\n\n📊 Gemini: ${geminiError?.message?.slice(0, 100) || '—'}\n📊 OpenAI: ${err.message?.slice(0, 100)}`,
+        error: ERROR_CODES.ALL_FAILED.msg,
         code: 'ALL_FAILED',
-        duration: `${dur}ms`
+        detail: `Gemini: ${geminiError?.message?.slice(0, 120) || '—'} | OpenAI: ${openaiMsg?.slice(0, 120)}`,
+        duration: `${dur}ms`,
+        keys_tried: geminiKeys.length
       });
     }
   }
@@ -424,8 +436,9 @@ export default async function handler(req, res) {
   // No OpenAI key configured — return Gemini error
   const dur = Date.now() - startTime;
   return res.status(503).json({
-    error: `${geminiError?.message || ERROR_CODES.ALL_FAILED.msg}`,
+    error: geminiError?.message || ERROR_CODES.ALL_FAILED.msg,
     code: geminiError?.geminiCode || 'ALL_FAILED',
+    detail: `Keys tried: ${geminiKeys.length}, OpenAI: not configured, Duration: ${dur}ms`,
     duration: `${dur}ms`,
     keys_tried: geminiKeys.length,
     has_openai: false
