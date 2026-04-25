@@ -258,12 +258,14 @@
   }
 
   function showProfileError(username) {
-    els.errorText.innerHTML = `Не вдалося знайти профіль <strong>@${esc(username)}</strong>.<br>Перевір нік або завантаж скріншот для аналізу.`;
+    els.errorText.innerHTML = `Не вдалося знайти профіль <strong>@${esc(username)}</strong>.<br>Перевір нік або обери інший спосіб аналізу.`;
     els.errorMessage.classList.remove('hidden');
 
-    // Remove old switch button if exists
+    // Remove old buttons if exists
     const existingSwitch = els.errorMessage.querySelector('.error-toast__switch');
     if (existingSwitch) existingSwitch.remove();
+    const existingFallback = els.errorMessage.querySelector('.error-toast__fallback');
+    if (existingFallback) existingFallback.remove();
 
     // Add switch-to-screenshot button
     const switchBtn = document.createElement('button');
@@ -283,6 +285,21 @@
       checkUploadValid();
     });
     els.errorMessage.appendChild(switchBtn);
+
+    // Add fallback button — analyze without real data
+    const fallbackBtn = document.createElement('button');
+    fallbackBtn.type = 'button';
+    fallbackBtn.className = 'error-toast__retry error-toast__fallback';
+    fallbackBtn.style.cssText = 'margin-top:6px;background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(168,85,247,.08));border:1px solid rgba(139,92,246,.25);color:#a78bfa;';
+    fallbackBtn.innerHTML = '✨ Аналізувати без реальних даних (за анкетою)';
+    fallbackBtn.addEventListener('click', () => {
+      hideError();
+      // Set minimal profile data so analysis proceeds
+      state.profileData = { username: username, _fallback: true };
+      state.profileScreenshot = null;
+      runAnalysisWithData();
+    });
+    els.errorMessage.appendChild(fallbackBtn);
   }
 
   function hideError() { els.errorMessage.classList.add('hidden'); }
@@ -415,7 +432,13 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
     }
     const data = await res.json();
 
-    // Extract text content from response
+    // Server-side cleanAIResponse() already guarantees valid JSON in content.
+    // Strategy 1: If server returned data with score directly (future-proof)
+    if (typeof data.score === 'number' || typeof data.summary === 'string') {
+      return data;
+    }
+
+    // Strategy 2: Extract content string from choices (standard path)
     let content = '';
     if (data.choices && data.choices[0]) {
       content = data.choices[0].message?.content || '';
@@ -425,37 +448,27 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       content = data.text;
     }
 
-    // Robust JSON extraction
-    content = content
-      .replace(/^\uFEFF/, '')                    // BOM
-      .replace(/```json\s*/gi, '')               // ```json blocks
-      .replace(/```\s*/g, '')                    // ``` blocks
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // control chars
-      .trim();
-
-    // Strategy 1: content is already valid JSON
-    try { return JSON.parse(content); } catch (_) { }
-
-    // Strategy 2: find outermost { ... }
-    let depth = 0, start = -1;
-    for (let i = 0; i < content.length; i++) {
-      if (content[i] === '{') { if (depth === 0) start = i; depth++; }
-      else if (content[i] === '}') {
-        depth--; if (depth === 0 && start !== -1) {
-          try { return JSON.parse(content.substring(start, i + 1)); } catch (_) { start = -1; }
-        }
-      }
+    if (!content) {
+      if (retryCount < 1) return apiAnalyze(retryCount + 1);
+      throw new Error('AI повернув порожню відповідь');
     }
 
-    // Strategy 3: fix common JSON issues and retry parse
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      let fixed = jsonMatch[0]
-        .replace(/,\s*}/g, '}')           // trailing commas
-        .replace(/,\s*]/g, ']')           // trailing commas in arrays
-        .replace(/'/g, '"')               // single to double quotes
-        .replace(/(?<!["\w:\/])([a-zA-Z_]\w*)\s*(?=:)/g, '"$1"'); // unquoted keys
-      try { return JSON.parse(fixed); } catch (_) { }
+    // Server already cleaned this, just parse
+    try { return JSON.parse(content); } catch (_) {}
+
+    // Light fallback: strip markdown artifacts and try again
+    let cleaned = content
+      .replace(/^\uFEFF/, '')
+      .replace(/```json\s*/gi, '')
+      .replace(/```\s*/g, '')
+      .trim();
+    try { return JSON.parse(cleaned); } catch (_) {}
+
+    // Last resort: extract outermost { ... }
+    const braceStart = cleaned.indexOf('{');
+    const braceEnd = cleaned.lastIndexOf('}');
+    if (braceStart !== -1 && braceEnd > braceStart) {
+      try { return JSON.parse(cleaned.substring(braceStart, braceEnd + 1)); } catch (_) {}
     }
 
     // Auto-retry once
@@ -570,6 +583,37 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       showScreen('screen-upload');
       showError(err.message || 'Щось пішло не так', err.debugInfo || null);
       if (window.BA) BA.track('analysis_error', { error: err.message || 'unknown', code: err.debugInfo?.code || 'unknown', input_mode: state.inputMode });
+    }
+  }
+
+  // ── Run analysis with pre-set data (fallback when profile not found) ──
+  async function runAnalysisWithData() {
+    showScreen('screen-loading');
+    startLoadingStages();
+    if (window.BA) BA.track('analysis_started', { input_mode: 'fallback', niche: state.answers.q0 || '' });
+
+    try {
+      state.aiResult = await apiAnalyze();
+      await finishLoadingStages();
+      renderResults(state.aiResult);
+      showScreen('screen-results');
+      if (window.BA) BA.track('analysis_completed', {
+        score: state.aiResult.score,
+        niche: state.answers.q0,
+        input_mode: 'fallback',
+        has_profile_data: false,
+        has_screenshot: false
+      });
+      if (typeof fbq === 'function') fbq('track', 'ViewContent', {
+        content_name: 'AI Analysis Result (Fallback)',
+        content_category: state.answers.q0,
+        value: state.aiResult.score
+      });
+    } catch (err) {
+      if (progressInterval) clearInterval(progressInterval);
+      showScreen('screen-upload');
+      showError(err.message || 'Щось пішло не так', err.debugInfo || null);
+      if (window.BA) BA.track('analysis_error', { error: err.message || 'unknown', code: err.debugInfo?.code || 'unknown', input_mode: 'fallback' });
     }
   }
 

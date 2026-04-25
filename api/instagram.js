@@ -14,19 +14,28 @@ export default async function handler(req, res) {
   // ─── 1. Fetch HTML via CORS proxies ───
   const proxies = [
     `https://api.allorigins.win/raw?url=${encodeURIComponent(igUrl)}`,
-    `https://corsproxy.io/?${encodeURIComponent(igUrl)}`
+    `https://corsproxy.io/?${encodeURIComponent(igUrl)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(igUrl)}`,
+    `https://thingproxy.freeboard.io/fetch/${igUrl}`
   ];
 
   let html = null;
   for (const proxyUrl of proxies) {
     try {
       const controller = new AbortController();
-      const tid = setTimeout(() => controller.abort(), 8000);
-      const r = await fetch(proxyUrl, { signal: controller.signal });
+      const tid = setTimeout(() => controller.abort(), 10000);
+      const r = await fetch(proxyUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9'
+        }
+      });
       clearTimeout(tid);
       if (r.ok) {
         html = await r.text();
-        if (html && html.includes('instagram')) break;
+        if (html && (html.includes('instagram') || html.includes('og:description'))) break;
         html = null;
       }
     } catch (_) { continue; }
