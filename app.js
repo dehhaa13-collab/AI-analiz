@@ -423,7 +423,9 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
 
     if (!content) {
       if (retryCount < 1) return apiAnalyze(retryCount + 1);
-      throw new Error('AI повернув порожню відповідь');
+      const err = new Error('AI повернув порожню відповідь');
+      err.debugInfo = { code: 'EMPTY_CONTENT', detail: 'No text or content array found in response' };
+      throw err;
     }
 
     // Server already cleaned this, just parse
@@ -449,7 +451,9 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       return apiAnalyze(retryCount + 1);
     }
 
-    throw new Error('AI повернув некоректний формат. Спробуй ще раз');
+    const err = new Error('AI повернув некоректний формат. Спробуй ще раз');
+    err.debugInfo = { code: 'PARSE_ERROR', detail: content.slice(0, 150).replace(/\n/g, ' ') };
+    throw err;
   }
 
   // ── Loading stages animation ──
