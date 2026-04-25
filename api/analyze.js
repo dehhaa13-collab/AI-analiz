@@ -92,6 +92,112 @@ function classifyGeminiError(statusCode, errorBody) {
   return { ...ERROR_CODES.API_ERROR, detail: `HTTP ${statusCode}: ${msg.slice(0, 200)}` };
 }
 
+// ═══════════════════════════════════════════
+// SERVER-SIDE JSON CLEANING & VALIDATION
+// Ensures the client always receives valid JSON
+// ═══════════════════════════════════════════
+function cleanAIResponse(result) {
+  const rawText = result?.choices?.[0]?.message?.content || '';
+  if (!rawText) return result;
+
+  let cleaned = rawText
+    .replace(/^\uFEFF/, '')                          // BOM
+    .replace(/```json\s*/gi, '')                     // ```json blocks
+    .replace(/```\s*/g, '')                          // ``` blocks
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')  // control chars
+    .trim();
+
+  // Strategy 1: direct parse
+  try {
+    const parsed = JSON.parse(cleaned);
+    const validated = validateAIStructure(parsed);
+    result.choices[0].message.content = JSON.stringify(validated);
+    console.log('✅ JSON cleaned: direct parse OK');
+    return result;
+  } catch (_) {}
+
+  // Strategy 2: find outermost { ... }
+  let depth = 0, start = -1;
+  for (let i = 0; i < cleaned.length; i++) {
+    if (cleaned[i] === '{') { if (depth === 0) start = i; depth++; }
+    else if (cleaned[i] === '}') {
+      depth--;
+      if (depth === 0 && start !== -1) {
+        try {
+          const parsed = JSON.parse(cleaned.substring(start, i + 1));
+          const validated = validateAIStructure(parsed);
+          result.choices[0].message.content = JSON.stringify(validated);
+          console.log('✅ JSON cleaned: brace extraction OK');
+          return result;
+        } catch (_) { start = -1; }
+      }
+    }
+  }
+
+  // Strategy 3: regex + fix common JSON issues
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    let fixed = jsonMatch[0]
+      .replace(/,\s*}/g, '}')             // trailing commas in objects
+      .replace(/,\s*]/g, ']')             // trailing commas in arrays
+      .replace(/(["'])\s*\n\s*/g, '$1')    // broken strings
+      .replace(/\\n/g, ' ')               // escaped newlines in values
+      .replace(/[\r\n]+/g, ' ');           // actual newlines
+    try {
+      const parsed = JSON.parse(fixed);
+      const validated = validateAIStructure(parsed);
+      result.choices[0].message.content = JSON.stringify(validated);
+      console.log('✅ JSON cleaned: regex fix OK');
+      return result;
+    } catch (_) {}
+  }
+
+  // Strategy 4: aggressive cleanup — remove all newlines, fix quotes
+  try {
+    let aggressive = cleaned
+      .replace(/[\r\n]/g, ' ')
+      .replace(/\s+/g, ' ');
+    const braceStart = aggressive.indexOf('{');
+    const braceEnd = aggressive.lastIndexOf('}');
+    if (braceStart !== -1 && braceEnd > braceStart) {
+      let chunk = aggressive.substring(braceStart, braceEnd + 1);
+      const parsed = JSON.parse(chunk);
+      const validated = validateAIStructure(parsed);
+      result.choices[0].message.content = JSON.stringify(validated);
+      console.log('✅ JSON cleaned: aggressive cleanup OK');
+      return result;
+    }
+  } catch (_) {}
+
+  console.warn('⚠️ Could not clean AI response JSON, returning raw');
+  console.warn('Raw content (first 500 chars):', rawText.slice(0, 500));
+  return result;
+}
+
+function validateAIStructure(data) {
+  if (!data || typeof data !== 'object') return data;
+  return {
+    score: Math.max(1, Math.min(100, parseInt(data.score) || 50)),
+    score_label: data.score_label || 'Середній',
+    summary: data.summary || '',
+    problems: Array.isArray(data.problems) ? data.problems.slice(0, 5).map(p => ({
+      title: p.title || '',
+      description: p.description || '',
+      fix: p.fix || ''
+    })) : [],
+    content_plan: Array.isArray(data.content_plan) ? data.content_plan.map(item => ({
+      day: item.day || '',
+      format: item.format || '',
+      idea: item.idea || '',
+      hook: item.hook || '',
+      caption: item.caption || ''
+    })) : [],
+    action_plan: Array.isArray(data.action_plan) ? data.action_plan.slice(0, 5) : [],
+    hashtags: Array.isArray(data.hashtags) ? data.hashtags.slice(0, 15) : [],
+    cta: data.cta || ''
+  };
+}
+
 async function callGeminiWithModel(model, messages, apiKey) {
   const contents = [];
   const systemInstruction = messages.find(m => m.role === 'system');
@@ -254,23 +360,24 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: ERROR_CODES.NO_KEYS.msg, code: 'NO_KEYS' });
   }
 
-  const { messages } = req.body;
+  const { messages, provider } = req.body;
+  const forceOpenAI = provider === 'openai';
   let geminiError = null;
 
-  // ── STEP 1: Try Gemini (FREE) ──
-  if (geminiKeys.length > 0) {
+  // ── STEP 1: Try Gemini (FREE) — unless user forced OpenAI ──
+  if (!forceOpenAI && geminiKeys.length > 0) {
     try {
       const result = await callGemini(messages, geminiKeys);
       const dur = Date.now() - startTime;
       console.log(`✅ Gemini OK in ${dur}ms (FREE, $0 spent)`);
-      return res.status(200).json(result);
+      return res.status(200).json({ ...cleanAIResponse(result), _provider: 'gemini' });
     } catch (err) {
       geminiError = err;
       console.warn(`⚠️ Gemini cascade failed: [${err.geminiCode}] ${err.message?.slice(0, 200)}`);
     }
   }
 
-  // ── STEP 2: Fallback to OpenAI (PAID, budget-guarded) ──
+  // ── STEP 2: OpenAI (PAID — fallback or forced by user) ──
   if (openaiKey) {
     // Check daily budget
     if (!canUseOpenAI()) {
@@ -283,12 +390,12 @@ export default async function handler(req, res) {
     }
 
     try {
-      console.log(`🔄 Falling back to OpenAI (paid)...`);
+      console.log(`🔄 ${forceOpenAI ? 'User forced OpenAI' : 'Falling back to OpenAI'} (paid)...`);
       trackOpenAIUsage();
       const result = await callOpenAI(messages, openaiKey);
       const dur = Date.now() - startTime;
-      console.log(`✅ OpenAI OK in ${dur}ms (paid fallback, usage: ${openaiUsage.count}/${OPENAI_DAILY_MAX})`);
-      return res.status(200).json(result);
+      console.log(`✅ OpenAI OK in ${dur}ms (${forceOpenAI ? 'forced' : 'fallback'}, usage: ${openaiUsage.count}/${OPENAI_DAILY_MAX})`);
+      return res.status(200).json({ ...cleanAIResponse(result), _provider: 'openai' });
     } catch (err) {
       const dur = Date.now() - startTime;
       console.error(`❌ OpenAI also failed after ${dur}ms: ${err.message}`);
