@@ -71,7 +71,7 @@ function validate(body) {
 // ═══════════════════════════════════════════
 // GEMINI API (FREE — Primary)
 // ═══════════════════════════════════════════
-const GEMINI_MODELS = ['gemini-2.5-flash'];
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function classifyGeminiError(statusCode, errorBody) {
@@ -168,9 +168,12 @@ function cleanAIResponse(result) {
     }
   } catch (_) {}
 
-  console.warn('⚠️ Could not clean AI response JSON, returning raw');
+  console.warn('⚠️ Could not clean AI response JSON');
   console.warn('Raw content (first 500 chars):', rawText.slice(0, 500));
-  return result;
+  
+  const err = new Error('Invalid JSON format from AI');
+  err.classified = { ...ERROR_CODES.API_ERROR, detail: 'AI generated invalid JSON' };
+  throw err;
 }
 
 function validateAIStructure(data) {
@@ -219,7 +222,7 @@ async function callGeminiWithModel(model, messages, apiKey) {
 
   const payload = {
     contents,
-    generationConfig: { temperature: 0.7, maxOutputTokens: 3000, responseMimeType: 'application/json' }
+    generationConfig: { temperature: 0.7, maxOutputTokens: 3000 }
   };
   if (systemInstruction) {
     payload.system_instruction = { parts: [{ text: systemInstruction.content }] };
