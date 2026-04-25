@@ -1,3 +1,8 @@
+function escapeHtml(str) {
+  if (!str) return str;
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
@@ -19,14 +24,14 @@ export default async function handler(req, res) {
 
   const text = `🔥 Нова заявка з AI-аналізу!
 
-👤 Ім'я: ${name}
-📱 Телефон: ${phone}
-📸 Instagram: ${instagram || '—'}
-🕐 Зручний час: ${time || '—'}
+👤 Ім'я: ${escapeHtml(name)}
+📱 Телефон: ${escapeHtml(phone)}
+📸 Instagram: ${escapeHtml(instagram) || '—'}
+🕐 Зручний час: ${escapeHtml(time) || '—'}
 
 📊 AI Score: ${score || '—'}/100
-🎯 Сфера: ${niche || '—'}
-🎯 Мета: ${goal || '—'}
+🎯 Сфера: ${escapeHtml(niche) || '—'}
+🎯 Мета: ${escapeHtml(goal) || '—'}
 
 ${utmLine}
 ⏰ ${now}`;

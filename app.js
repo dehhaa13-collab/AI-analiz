@@ -13,6 +13,7 @@
     imageBase64: null,
     username: '',
     inputMode: 'screenshot',
+    aiProvider: 'gemini', // 'gemini' (free, default) or 'openai' (paid)
     aiResult: null,
     profileData: null,
     profileScreenshot: null,
@@ -232,9 +233,28 @@
     }
     
     els.errorMessage.classList.remove('hidden');
-    // Remove switch-to-screenshot button if exists
+    // Remove old extra buttons
     const existingSwitch = els.errorMessage.querySelector('.error-toast__switch');
     if (existingSwitch) existingSwitch.remove();
+    const existingOpenai = els.errorMessage.querySelector('.error-toast__openai');
+    if (existingOpenai) existingOpenai.remove();
+
+    // If Gemini failed & user is on free mode — suggest switching to OpenAI
+    const isGeminiFail = debugInfo && ['QUOTA', 'OVERLOADED', 'ALL_FAILED', 'API_ERROR'].includes(debugInfo.code);
+    if (isGeminiFail && state.aiProvider !== 'openai') {
+      const openaiBtn = document.createElement('button');
+      openaiBtn.type = 'button';
+      openaiBtn.className = 'error-toast__retry error-toast__openai';
+      openaiBtn.style.cssText = 'margin-top:8px;background:linear-gradient(135deg,rgba(16,163,127,.15),rgba(16,163,127,.08));border:1px solid rgba(16,163,127,.3);color:#10a37f;';
+      openaiBtn.innerHTML = '🔄 Спробувати через OpenAI (платний)';
+      openaiBtn.addEventListener('click', () => {
+        hideError();
+        state.aiProvider = 'openai';
+        updateProviderToggle();
+        runAnalysis();
+      });
+      els.errorMessage.appendChild(openaiBtn);
+    }
   }
 
   function showProfileError(username) {
@@ -376,10 +396,16 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
       messages.push({ role: 'user', content: 'УВАГА: поверни ТІЛЬКИ чистий JSON без ```json тегів, без пояснень. Починай з { і закінчуй }' });
     }
 
+    const payload = { messages };
+    // Send provider preference to backend
+    if (state.aiProvider === 'openai') {
+      payload.provider = 'openai';
+    }
+
     const res = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages })
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
@@ -428,7 +454,7 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
         .replace(/,\s*}/g, '}')           // trailing commas
         .replace(/,\s*]/g, ']')           // trailing commas in arrays
         .replace(/'/g, '"')               // single to double quotes
-        .replace(/(\w+)\s*:/g, '"$1":');  // unquoted keys
+        .replace(/(?<!["\w:\/])([a-zA-Z_]\w*)\s*(?=:)/g, '"$1"'); // unquoted keys
       try { return JSON.parse(fixed); } catch (_) { }
     }
 
@@ -781,12 +807,38 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
     setTimeout(closeModal, 3000);
   }
 
+  // ── AI Provider Toggle ──
+  function initProviderToggle() {
+    const toggle = $('#provider-toggle');
+    if (!toggle) return;
+    toggle.addEventListener('click', () => {
+      state.aiProvider = state.aiProvider === 'gemini' ? 'openai' : 'gemini';
+      updateProviderToggle();
+      if (window.BA) BA.track('provider_switch', { provider: state.aiProvider });
+    });
+    updateProviderToggle();
+  }
+
+  function updateProviderToggle() {
+    const toggle = $('#provider-toggle');
+    const dot = toggle?.querySelector('.provider-toggle__dot');
+    const labelFree = toggle?.querySelector('.provider-toggle__label--free');
+    const labelPaid = toggle?.querySelector('.provider-toggle__label--paid');
+    if (!toggle) return;
+    const isOpenAI = state.aiProvider === 'openai';
+    toggle.classList.toggle('active', isOpenAI);
+    if (dot) dot.style.transform = isOpenAI ? 'translateX(22px)' : 'translateX(0)';
+    if (labelFree) labelFree.classList.toggle('dimmed', isOpenAI);
+    if (labelPaid) labelPaid.classList.toggle('dimmed', !isOpenAI);
+  }
+
   // ── Event bindings ──
   function init() {
     captureUTM();
     initRadioCards();
     initTabs();
     initUpload();
+    initProviderToggle();
     checkQuizValid();
 
     els.btnNext.addEventListener('click', () => {
@@ -824,10 +876,10 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
     els.ctaCallback.addEventListener('click', openModal);
     const ctaCall = $('#cta-call');
     const ctaMsg = $('#cta-message');
-    const ctaZoom = $('#cta-zoom');
+    const ctaIg = $('#cta-instagram');
     if (ctaCall) ctaCall.addEventListener('click', () => { if (window.BA) BA.track('cta_click', { type: 'phone_call' }); });
     if (ctaMsg) ctaMsg.addEventListener('click', () => { if (window.BA) BA.track('cta_click', { type: 'telegram' }); });
-    if (ctaZoom) ctaZoom.addEventListener('click', () => { if (window.BA) BA.track('cta_click', { type: 'zoom_calendar' }); });
+    if (ctaIg) ctaIg.addEventListener('click', () => { if (window.BA) BA.track('cta_click', { type: 'instagram_dm' }); });
 
     els.modalBackdrop.addEventListener('click', closeModal);
     els.modalClose.addEventListener('click', closeModal);
