@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   if (!botToken || !chatId) return res.status(500).json({ error: 'Telegram не налаштований' });
 
   const now = new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' });
-  const utmLine = utm?.utm_source !== 'direct'
+  const utmLine = utm && utm.utm_source && utm.utm_source !== 'direct'
     ? `📣 UTM: ${utm.utm_source || ''} / ${utm.utm_medium || ''} / ${utm.utm_campaign || ''}`
     : '📣 UTM: direct';
 

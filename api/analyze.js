@@ -141,8 +141,7 @@ function cleanAIResponse(result) {
       .replace(/,\s*}/g, '}')             // trailing commas in objects
       .replace(/,\s*]/g, ']')             // trailing commas in arrays
       .replace(/(["'])\s*\n\s*/g, '$1')    // broken strings
-      .replace(/\\n/g, ' ')               // escaped newlines in values
-      .replace(/[\r\n]+/g, ' ');           // actual newlines
+      .replace(/[\r\n]+/g, ' ');           // actual newlines (not escaped \\n)
     try {
       const parsed = JSON.parse(fixed);
       const validated = validateAIStructure(parsed);

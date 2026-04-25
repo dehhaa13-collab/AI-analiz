@@ -325,14 +325,15 @@
   // ── System prompt ──
   function buildPrompt() {
     const a = state.answers;
-    const q4 = $('#q4-text').value.trim();
+    const q4El = $('#q4-text');
+    const q4 = q4El ? q4El.value.trim() : '';
     const pd = state.profileData;
 
     let userMsg = `Проаналізуй Instagram-профіль б'юті-майстра.\n\nАнкета:\n- Сфера: ${a.q0}\n- Мета: ${a.q1}\n- Підписники: ${a.q2}\n- Частота контенту: ${a.q3}`;
     if (q4) userMsg += `\n- Що турбує: ${q4}`;
 
-    // Add real profile data (only real data — never fake)
-    if (pd) {
+    // Add real profile data (only real data — never fake/fallback)
+    if (pd && !pd._fallback) {
       userMsg += `\n\n📊 РЕАЛЬНІ дані профілю @${pd.username}:`;
       if (pd.displayName) userMsg += `\n- Ім'я: ${pd.displayName}`;
       if (pd.bio) userMsg += `\n- Біо: ${pd.bio}`;
@@ -344,7 +345,7 @@
       if (pd.externalUrl) userMsg += `\n- Посилання: ${pd.externalUrl}`;
     }
 
-    const hasRealData = !!pd;
+    const hasRealData = !!pd && !pd._fallback;
     const hasVisual = !!(state.imageBase64 || state.profileScreenshot);
     const systemPrompt = `Ти — провідний SMM-стратег з 10+ роками досвіду в б'юті-індустрії. Ти аналізуєш Instagram-сторінки б'юті-майстрів і створюєш конкретні контент-плани.
 ${hasRealData ? '\nТобі дано РЕАЛЬНІ дані профілю. Аналізуй їх уважно. Якщо профіль закритий — рекомендуй відкрити. Якщо біо порожнє — запропонуй текст. Оцінку став справедливо: мало підписників/постів = нижчий бал, багато = вищий.' : '\nЗосередься на стратегії та контент-ідеях для ніші.'}
@@ -800,7 +801,7 @@ ${hasVisual ? '\nТобі дано ЗОБРАЖЕННЯ профілю. ОБОВ
   function openModal() {
     els.callbackModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
-    const ig = state.username || state.answers.username || '';
+    const ig = state.username || '';
     if (ig && els.leadIg) els.leadIg.value = '@' + ig.replace(/^@/, '');
     if (window.BA) BA.track('cta_click', { type: 'callback_modal', score: state.aiResult?.score });
   }
