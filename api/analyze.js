@@ -226,11 +226,19 @@ async function callGeminiWithModel(model, messages, apiKey) {
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 50000); // 50s timeout
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
@@ -291,20 +299,28 @@ async function callGemini(messages, apiKeys) {
 // OPENAI API (PAID — Fallback only)
 // ═══════════════════════════════════════════
 async function callOpenAI(messages, apiKey) {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages,
-      response_format: { type: 'json_object' },
-      temperature: 0.7,
-      max_tokens: 3000
-    })
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 50000); // 50s timeout
+  let res;
+  try {
+    res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages,
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+        max_tokens: 3000
+      }),
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
@@ -359,12 +375,11 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: ERROR_CODES.NO_KEYS.msg, code: 'NO_KEYS' });
   }
 
-  const { messages, provider } = req.body;
-  const forceOpenAI = provider === 'openai';
+  const { messages } = req.body;
   let geminiError = null;
 
-  // ── STEP 1: Try Gemini (FREE) — unless user forced OpenAI ──
-  if (!forceOpenAI && geminiKeys.length > 0) {
+  // ── STEP 1: Try Gemini (FREE) ──
+  if (geminiKeys.length > 0) {
     try {
       const result = await callGemini(messages, geminiKeys);
       const dur = Date.now() - startTime;
@@ -389,11 +404,11 @@ export default async function handler(req, res) {
     }
 
     try {
-      console.log(`🔄 ${forceOpenAI ? 'User forced OpenAI' : 'Falling back to OpenAI'} (paid)...`);
-      trackOpenAIUsage();
+      console.log(`🔄 Falling back to OpenAI (paid)...`);
       const result = await callOpenAI(messages, openaiKey);
+      trackOpenAIUsage(); // Count only on success — don't waste budget on failed requests
       const dur = Date.now() - startTime;
-      console.log(`✅ OpenAI OK in ${dur}ms (${forceOpenAI ? 'forced' : 'fallback'}, usage: ${openaiUsage.count}/${OPENAI_DAILY_MAX})`);
+      console.log(`✅ OpenAI OK in ${dur}ms (fallback, usage: ${openaiUsage.count}/${OPENAI_DAILY_MAX})`);
       return res.status(200).json({ ...cleanAIResponse(result), _provider: 'openai' });
     } catch (err) {
       const dur = Date.now() - startTime;
